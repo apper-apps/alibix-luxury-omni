@@ -43,7 +43,7 @@ class ErrorBoundary extends React.Component {
 
 // Mock Data
 const mockProducts = [
-  {
+{
     Id: 1,
     name: { en: "Premium Leather Shoes", ur: "پریمیم چمڑے کے جوتے" },
     price: 2000,
@@ -56,9 +56,10 @@ const mockProducts = [
     inStock: true,
     rating: 4.5,
     reviews: 128,
-    country: "Pakistan"
+    country: "Pakistan",
+    isFromChina: false
   },
-  {
+{
     Id: 2,
     name: { en: "Designer Handbag", ur: "ڈیزائنر ہینڈ بیگ" },
     price: 1600,
@@ -70,9 +71,10 @@ const mockProducts = [
     inStock: true,
     rating: 4.7,
     reviews: 89,
-    country: "Turkey"
+    country: "Turkey",
+    isFromChina: false
   },
-  {
+{
     Id: 3,
     name: { en: "Kids Educational Toy", ur: "بچوں کا تعلیمی کھلونا" },
     price: 800,
@@ -83,9 +85,11 @@ const mockProducts = [
     inStock: false,
     rating: 4.3,
     reviews: 45,
-    country: "China"
+    country: "China",
+    isFromChina: true,
+    deliveryDays: 22
   },
-  {
+{
     Id: 4,
     name: { en: "Kitchen Appliance Set", ur: "کچن اپلائنس سیٹ" },
     price: 4000,
@@ -96,7 +100,8 @@ const mockProducts = [
     inStock: true,
     rating: 4.6,
     reviews: 203,
-    country: "Germany"
+    country: "Germany",
+    isFromChina: false
   },
   {
     Id: 5,
@@ -109,7 +114,8 @@ const mockProducts = [
     inStock: true,
     rating: 4.4,
     reviews: 167,
-    country: "Korea"
+    country: "Korea",
+    isFromChina: false
   },
   {
     Id: 6,
@@ -122,7 +128,8 @@ const mockProducts = [
     inStock: true,
     rating: 4.8,
     reviews: 312,
-    country: "USA"
+    country: "USA",
+    isFromChina: false
   }
 ];
 
@@ -393,10 +400,17 @@ const ProductCard = ({ product }) => {
             />
           </button>
         </div>
-        
-        <div className="p-4">
-          <div className="country-badge mb-2">
-            {product.country}
+<div className="p-4">
+          <div className="flex items-center gap-2 mb-2">
+            <div className="country-badge">
+              {product.country}
+            </div>
+            {product.isFromChina && (
+              <div className="china-badge">
+                <ApperIcon name="Truck" size={12} />
+                {language === 'en' ? `${product.deliveryDays} days` : `${product.deliveryDays} دن`}
+              </div>
+            )}
           </div>
           
           <h3 className="font-semibold mb-2 text-sm text-bilingual line-clamp-2">
@@ -470,17 +484,17 @@ const ProductCard = ({ product }) => {
             </div>
           )}
           
-          <button
+<button
             onClick={handleQuickAdd}
             disabled={!product.inStock}
             className={`w-full py-2 px-4 rounded-lg text-sm font-medium transition-all ${
               product.inStock
-                ? 'bg-primary text-white hover:bg-orange-600'
+                ? 'bg-primary text-white hover:bg-yellow-600'
                 : 'bg-gray-200 text-gray-400 cursor-not-allowed'
             }`}
           >
             {!product.inStock 
-              ? (language === 'en' ? 'Out of Stock' : 'ختم') 
+              ? (language === 'en' ? 'Sold Out' : 'فروخت مکمل') 
               : (language === 'en' ? 'Add to Cart' : 'کارٹ میں شامل کریں')
             }
           </button>
@@ -692,8 +706,8 @@ const Home = () => {
         </div>
       </div>
 
-      {/* Discount Timer */}
-      <div className="mx-4 bg-gradient-to-r from-primary to-orange-600 text-white p-4 rounded-xl">
+{/* Discount Timer */}
+      <div className="mx-4 bg-gradient-to-r from-primary to-yellow-600 text-white p-4 rounded-xl">
         <div className="text-center">
           <h3 className="text-lg font-bold mb-2">
             {language === 'en' ? 'Flash Sale Ends In:' : 'فلیش سیل ختم ہونے میں:'}
@@ -701,17 +715,17 @@ const Home = () => {
           <div className="flex justify-center gap-4 text-2xl font-bold">
             <div className="text-center">
               <div>02</div>
-              <div className="text-xs">Hours</div>
+              <div className="text-xs">{language === 'en' ? 'Hours' : 'گھنٹے'}</div>
             </div>
             <div>:</div>
             <div className="text-center">
               <div>30</div>
-              <div className="text-xs">Minutes</div>
+              <div className="text-xs">{language === 'en' ? 'Minutes' : 'منٹ'}</div>
             </div>
             <div>:</div>
             <div className="text-center">
               <div>45</div>
-              <div className="text-xs">Seconds</div>
+              <div className="text-xs">{language === 'en' ? 'Seconds' : 'سیکنڈ'}</div>
             </div>
           </div>
         </div>
@@ -993,15 +1007,15 @@ const ProductDetail = () => {
         {/* Add to Cart Button */}
         <button
           onClick={handleAddToCart}
-          disabled={!product.inStock}
+disabled={!product.inStock}
           className={`w-full py-4 px-6 rounded-lg text-lg font-semibold transition-all ${
             product.inStock
-              ? 'bg-primary text-white hover:bg-orange-600'
+              ? 'bg-primary text-white hover:bg-yellow-600'
               : 'bg-gray-200 text-gray-400 cursor-not-allowed'
           }`}
         >
           {!product.inStock 
-            ? (language === 'en' ? 'Out of Stock' : 'ختم') 
+            ? (language === 'en' ? 'Sold Out' : 'فروخت مکمل') 
             : (language === 'en' ? 'Add to Cart' : 'کارٹ میں شامل کریں')
           }
         </button>
@@ -1224,10 +1238,10 @@ const Checkout = () => {
   const [formData, setFormData] = useState({
     fullName: '',
     email: '',
-    phone: '',
-    address: '',
+address: '',
     city: '',
-    paymentMethod: 'cod'
+    paymentMethod: 'cod',
+    phoneNumber: ''
   });
 
   const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
@@ -1305,15 +1319,15 @@ const Checkout = () => {
           </div>
         </div>
 
-        {/* Payment Method */}
+{/* Payment Method - Pakistan Options */}
         <div className="admin-card">
           <h3 className="font-semibold mb-4">
-            {language === 'en' ? 'Payment Method' : 'ادائیگی کا طریقہ'}
+            {language === 'en' ? 'Payment Method (Pakistan Only)' : 'ادائیگی کا طریقہ (صرف پاکستان)'}
           </h3>
           
           <div className="space-y-3">
             <div 
-              className={`payment-method ${formData.paymentMethod === 'cod' ? 'selected' : ''}`}
+              className={`payment-method-pakistan ${formData.paymentMethod === 'cod' ? 'selected' : ''}`}
               onClick={() => setFormData({...formData, paymentMethod: 'cod'})}
             >
               <div className="flex items-center gap-3">
@@ -1324,35 +1338,93 @@ const Checkout = () => {
                   checked={formData.paymentMethod === 'cod'}
                   readOnly
                 />
-                <div>
-                  <div className="font-semibold">
-                    {language === 'en' ? 'Cash on Delivery' : 'ڈیلیوری پر نقد'}
-                  </div>
-                  <div className="text-sm text-gray-600">
-                    {language === 'en' ? 'Pay when you receive' : 'جب آپ کو موصول ہو تو ادائیگی کریں'}
+                <div className="flex items-center gap-2">
+                  <span className="pakistan-flag"></span>
+                  <div>
+                    <div className="font-semibold">
+                      {language === 'en' ? 'Cash on Delivery (COD)' : 'ڈیلیوری پر نقد (COD)'}
+                    </div>
+                    <div className="text-sm text-gray-600">
+                      {language === 'en' ? 'Pay when you receive (Pakistan)' : 'جب آپ کو موصول ہو تو ادائیگی کریں (پاکستان)'}
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
             
             <div 
-              className={`payment-method ${formData.paymentMethod === 'card' ? 'selected' : ''}`}
-              onClick={() => setFormData({...formData, paymentMethod: 'card'})}
+              className={`payment-method-pakistan ${formData.paymentMethod === 'easypaisa' ? 'selected' : ''}`}
+              onClick={() => setFormData({...formData, paymentMethod: 'easypaisa'})}
             >
               <div className="flex items-center gap-3">
                 <input
                   type="radio"
                   name="paymentMethod"
-                  value="card"
-                  checked={formData.paymentMethod === 'card'}
+                  value="easypaisa"
+                  checked={formData.paymentMethod === 'easypaisa'}
                   readOnly
                 />
-                <div>
-                  <div className="font-semibold">
-                    {language === 'en' ? 'Credit/Debit Card' : 'کریڈٹ/ڈیبٹ کارڈ'}
+                <div className="flex items-center gap-2">
+                  <span className="pakistan-flag"></span>
+                  <div>
+                    <div className="font-semibold">
+                      {language === 'en' ? 'Easypaisa' : 'ایزی پیسہ'}
+                    </div>
+                    <div className="text-sm text-gray-600">
+                      {language === 'en' ? 'Mobile wallet payment' : 'موبائل والیٹ ادائیگی'}
+                    </div>
                   </div>
-                  <div className="text-sm text-gray-600">
-                    {language === 'en' ? 'Pay online securely' : 'آن لائن محفوظ ادائیگی'}
+                </div>
+              </div>
+            </div>
+
+            <div 
+              className={`payment-method-pakistan ${formData.paymentMethod === 'jazzcash' ? 'selected' : ''}`}
+              onClick={() => setFormData({...formData, paymentMethod: 'jazzcash'})}
+            >
+              <div className="flex items-center gap-3">
+                <input
+                  type="radio"
+                  name="paymentMethod"
+                  value="jazzcash"
+                  checked={formData.paymentMethod === 'jazzcash'}
+                  readOnly
+                />
+                <div className="flex items-center gap-2">
+                  <span className="pakistan-flag"></span>
+                  <div>
+                    <div className="font-semibold">
+                      {language === 'en' ? 'JazzCash' : 'جاز کیش'}
+                    </div>
+                    <div className="text-sm text-gray-600">
+                      {language === 'en' ? 'Digital payment service' : 'ڈیجیٹل ادائیگی کی سروس'}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div 
+              className={`payment-method-pakistan ${formData.paymentMethod === 'bank' ? 'selected' : ''}`}
+              onClick={() => setFormData({...formData, paymentMethod: 'bank'})}
+            >
+              <div className="flex items-center gap-3">
+                <input
+                  type="radio"
+                  name="paymentMethod"
+                  value="bank"
+                  checked={formData.paymentMethod === 'bank'}
+                  readOnly
+                />
+                <div className="flex items-center gap-2">
+                  <span className="pakistan-flag"></span>
+                  <div>
+                    <div className="font-semibold">
+                      {language === 'en' ? 'Bank Transfer' : 'بینک ٹرانسفر'}
+                    </div>
+                    <div className="text-sm text-gray-600">
+                      {language === 'en' ? 'Direct bank transfer' : 'براہ راست بینک ٹرانسفر'}
+                    </div>
                   </div>
                 </div>
               </div>

@@ -10,16 +10,16 @@ export default {
         'display': ['Plus Jakarta Sans', 'sans-serif'],
         'sans': ['Inter', 'sans-serif'],
       },
-      colors: {
-        primary: '#FF6B00',
-        secondary: '#1A1A1A',
-        accent: '#FFB366',
-        surface: '#FFFFFF',
-        background: '#F5F5F5',
-        success: '#10B981',
-        warning: '#F59E0B',
-        error: '#EF4444',
-        info: '#3B82F6',
+colors: {
+        primary: '#CFA75F',      // Gold
+        secondary: '#111111',    // Black
+        accent: '#CFA75F',      // Gold (same as primary for consistency)
+        surface: '#FAFAFA',     // White
+        background: '#FAFAFA',  // White
+        success: '#10B981',     // Keep existing green
+        warning: '#F59E0B',     // Keep existing orange
+        error: '#D62828',       // Red
+        info: '#3B82F6',        // Keep existing blue
       },
       boxShadow: {
         'soft': '0 2px 8px rgba(0,0,0,0.1)',
