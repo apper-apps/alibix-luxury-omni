@@ -1,6 +1,6 @@
 import 'react-toastify/dist/ReactToastify.css'
-import React, { useState, useEffect } from "react";
-import { BrowserRouter as Router, Routes, Route, Link, useNavigate, useLocation } from "react-router-dom";
+import React, { useContext, useEffect, useState } from "react";
+import { Link, Route, Router, Routes, useLocation, useNavigate } from "react-router-dom";
 import { ToastContainer, toast } from "react-toastify";
 import ApperIcon from "@/components/ApperIcon";
 
@@ -1861,13 +1861,55 @@ const Admin = () => {
     );
   }
 
-  const tabs = [
+const tabs = [
     { id: 'dashboard', label: language === 'en' ? 'Dashboard' : 'ڈیش بورڈ', icon: 'BarChart3' },
     { id: 'products', label: language === 'en' ? 'Products' : 'پروڈکٹس', icon: 'Package' },
     { id: 'categories', label: language === 'en' ? 'Categories' : 'کیٹیگریز', icon: 'Grid3x3' },
     { id: 'orders', label: language === 'en' ? 'Orders' : 'آرڈرز', icon: 'ShoppingCart' },
-    { id: 'discounts', label: language === 'en' ? 'Discounts' : 'ڈسکاؤنٹس', icon: 'Percent' }
+    { id: 'discounts', label: language === 'en' ? 'Discounts' : 'ڈسکاؤنٹس', icon: 'Percent' },
+    { id: 'support', label: language === 'en' ? 'Support' : 'سپورٹ', icon: 'MessageCircle' }
   ];
+
+  // Modal state management
+  const [showProductModal, setShowProductModal] = useState(false);
+  const [showCategoryModal, setShowCategoryModal] = useState(false);
+  const [showOrderModal, setShowOrderModal] = useState(false);
+  const [showSupportModal, setShowSupportModal] = useState(false);
+  const [editingItem, setEditingItem] = useState(null);
+
+  // Mock support messages
+  const [supportMessages] = useState([
+    {
+      Id: 1,
+      customerName: 'Ahmed Ali',
+      email: 'ahmed@example.com',
+      subject: 'Delivery Issue',
+      message: 'My order has not arrived yet. It has been 5 days.',
+      date: '2024-01-20',
+      status: 'pending',
+      priority: 'high'
+    },
+    {
+      Id: 2,
+      customerName: 'Fatima Khan',
+      email: 'fatima@example.com',
+      subject: 'Product Quality',
+      message: 'The product I received is damaged. Please help.',
+      date: '2024-01-19',
+      status: 'responded',
+      priority: 'medium'
+    },
+    {
+      Id: 3,
+      customerName: 'Hassan Sheikh',
+      email: 'hassan@example.com',
+      subject: 'Return Request',
+      message: 'I want to return my purchase. Size does not fit.',
+      date: '2024-01-18',
+      status: 'resolved',
+      priority: 'low'
+    }
+  ]);
 
   const AdminDashboard = () => (
     <div className="space-y-6">
@@ -1905,10 +1947,10 @@ const Admin = () => {
         <div className="admin-card">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600">Customers</p>
-              <p className="text-2xl font-bold text-primary">89</p>
+              <p className="text-sm text-gray-600">Support Messages</p>
+              <p className="text-2xl font-bold text-primary">{supportMessages.filter(m => m.status === 'pending').length}</p>
             </div>
-            <ApperIcon name="Users" size={32} className="text-primary" />
+            <ApperIcon name="MessageCircle" size={32} className="text-primary" />
           </div>
         </div>
       </div>
@@ -1955,239 +1997,1075 @@ const Admin = () => {
     </div>
   );
 
-  const AdminProducts = () => (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h3 className="text-xl font-bold">Product Management</h3>
-        <button className="admin-btn admin-btn-primary">
-          <ApperIcon name="Plus" size={16} className="mr-2" />
-          Add Product
-        </button>
-      </div>
-      
-      <div className="admin-card">
-        <div className="overflow-x-auto">
-          <table className="admin-table">
-            <thead>
-              <tr>
-                <th>Image</th>
-                <th>Name</th>
-                <th>Price</th>
-                <th>Stock</th>
-                <th>Category</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {mockProducts.map(product => (
-                <tr key={product.Id}>
-                  <td>
-                    <img 
-                      src={product.image} 
-                      alt={product.name[language]}
-                      className="w-10 h-10 object-cover rounded"
-                    />
-                  </td>
-                  <td>{product.name[language]}</td>
-                  <td>Rs. {product.price.toLocaleString()}</td>
-                  <td>
-                    <span className={`status-badge ${product.inStock ? 'processing' : 'cancelled'}`}>
-                      {product.inStock ? 'In Stock' : 'Out of Stock'}
-                    </span>
-                  </td>
-                  <td className="capitalize">{product.category.replace('-', ' ')}</td>
-                  <td>
-                    <div className="flex gap-2">
-                      <button className="admin-btn admin-btn-secondary">
-                        <ApperIcon name="Edit" size={16} />
-                      </button>
-                      <button className="admin-btn admin-btn-danger">
-                        <ApperIcon name="Trash2" size={16} />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+  const ProductModal = () => {
+    const [formData, setFormData] = useState({
+      name: { en: '', ur: '' },
+      price: '',
+      originalPrice: '',
+      discount: '',
+      category: '',
+      image: '/api/placeholder/300/300',
+      inStock: true,
+      codEnabled: true,
+      sizes: [],
+      colors: [],
+      country: 'Pakistan',
+      isFromChina: false,
+      deliveryDays: 3
+    });
+
+    const handleSubmit = (e) => {
+      e.preventDefault();
+      const action = editingItem ? 'updated' : 'added';
+      toast.success(`Product ${action} successfully!`);
+      setShowProductModal(false);
+      setEditingItem(null);
+    };
+
+    const handleDiscountChange = (value) => {
+      const discount = parseInt(value) || 0;
+      const originalPrice = parseFloat(formData.originalPrice) || 0;
+      const newPrice = originalPrice * (1 - discount / 100);
+      setFormData({
+        ...formData,
+        discount,
+        price: newPrice.toFixed(0)
+      });
+    };
+
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+          <div className="p-6">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-xl font-bold">
+                {editingItem ? 'Edit Product' : 'Add Product'}
+              </h2>
+              <button onClick={() => setShowProductModal(false)}>
+                <ApperIcon name="X" size={24} />
+              </button>
+            </div>
+
+            <form onSubmit={handleSubmit} className="admin-form">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label>Product Name (English)</label>
+                  <input
+                    type="text"
+                    value={formData.name.en}
+                    onChange={(e) => setFormData({...formData, name: {...formData.name, en: e.target.value}})}
+                    required
+                  />
+                </div>
+                
+                <div>
+                  <label>Product Name (Urdu)</label>
+                  <input
+                    type="text"
+                    value={formData.name.ur}
+                    onChange={(e) => setFormData({...formData, name: {...formData.name, ur: e.target.value}})}
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label>Original Price (Rs.)</label>
+                  <input
+                    type="number"
+                    value={formData.originalPrice}
+                    onChange={(e) => setFormData({...formData, originalPrice: e.target.value})}
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label>Discount (%)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    max="100"
+                    value={formData.discount}
+                    onChange={(e) => handleDiscountChange(e.target.value)}
+                    placeholder="0"
+                  />
+                </div>
+
+                <div>
+                  <label>Final Price (Rs.)</label>
+                  <input
+                    type="number"
+                    value={formData.price}
+                    onChange={(e) => setFormData({...formData, price: e.target.value})}
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label>Category</label>
+                  <select
+                    value={formData.category}
+                    onChange={(e) => setFormData({...formData, category: e.target.value})}
+                    required
+                  >
+                    <option value="">Select Category</option>
+                    {mockCategories.map(cat => (
+                      <option key={cat.Id} value={cat.slug}>{cat.name.en}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label>Country</label>
+                  <select
+                    value={formData.country}
+                    onChange={(e) => {
+                      const isFromChina = e.target.value === 'China';
+                      setFormData({
+                        ...formData, 
+                        country: e.target.value,
+                        isFromChina,
+                        deliveryDays: isFromChina ? 22 : 3
+                      });
+                    }}
+                  >
+                    <option value="Pakistan">Pakistan</option>
+                    <option value="Turkey">Turkey</option>
+                    <option value="China">China</option>
+                    <option value="USA">USA</option>
+                    <option value="Germany">Germany</option>
+                    <option value="Korea">Korea</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label>Delivery Days</label>
+                  <input
+                    type="number"
+                    value={formData.deliveryDays}
+                    onChange={(e) => setFormData({...formData, deliveryDays: parseInt(e.target.value)})}
+                    min="1"
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center gap-4">
+                <label className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={formData.inStock}
+                    onChange={(e) => setFormData({...formData, inStock: e.target.checked})}
+                  />
+                  <span>In Stock</span>
+                </label>
+
+                <label className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={formData.codEnabled}
+                    onChange={(e) => setFormData({...formData, codEnabled: e.target.checked})}
+                  />
+                  <span>COD Enabled</span>
+                </label>
+              </div>
+
+              <div className="flex gap-3">
+                <button type="submit" className="admin-btn admin-btn-primary">
+                  {editingItem ? 'Update Product' : 'Add Product'}
+                </button>
+                <button type="button" onClick={() => setShowProductModal(false)} className="admin-btn admin-btn-secondary">
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       </div>
-    </div>
-  );
+    );
+  };
 
-  const AdminCategories = () => (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h3 className="text-xl font-bold">Category Management</h3>
-        <button className="admin-btn admin-btn-primary">
-          <ApperIcon name="Plus" size={16} className="mr-2" />
-          Add Category
-        </button>
-      </div>
-      
-      <div className="admin-card">
-        <div className="overflow-x-auto">
-          <table className="admin-table">
-            <thead>
-              <tr>
-                <th>Icon</th>
-                <th>Name (English)</th>
-                <th>Name (Urdu)</th>
-                <th>Slug</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {mockCategories.map(category => (
-                <tr key={category.Id}>
-                  <td className="text-2xl">{category.icon}</td>
-                  <td>{category.name.en}</td>
-                  <td>{category.name.ur}</td>
-                  <td>{category.slug}</td>
-                  <td>
-                    <div className="flex gap-2">
-                      <button className="admin-btn admin-btn-secondary">
-                        <ApperIcon name="Edit" size={16} />
-                      </button>
-                      <button className="admin-btn admin-btn-danger">
-                        <ApperIcon name="Trash2" size={16} />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+  const CategoryModal = () => {
+    const [formData, setFormData] = useState({
+      name: { en: '', ur: '' },
+      icon: '📦',
+      slug: '',
+      image: '/api/placeholder/300/300'
+    });
+
+    const handleSubmit = (e) => {
+      e.preventDefault();
+      const action = editingItem ? 'updated' : 'added';
+      toast.success(`Category ${action} successfully!`);
+      setShowCategoryModal(false);
+      setEditingItem(null);
+    };
+
+    const generateSlug = (name) => {
+      return name.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+    };
+
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="bg-white rounded-lg max-w-md w-full">
+          <div className="p-6">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-xl font-bold">
+                {editingItem ? 'Edit Category' : 'Add Category'}
+              </h2>
+              <button onClick={() => setShowCategoryModal(false)}>
+                <ApperIcon name="X" size={24} />
+              </button>
+            </div>
+
+            <form onSubmit={handleSubmit} className="admin-form">
+              <div>
+                <label>Category Name (English)</label>
+                <input
+                  type="text"
+                  value={formData.name.en}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    setFormData({
+                      ...formData, 
+                      name: {...formData.name, en: value},
+                      slug: generateSlug(value)
+                    });
+                  }}
+                  required
+                />
+              </div>
+              
+              <div>
+                <label>Category Name (Urdu)</label>
+                <input
+                  type="text"
+                  value={formData.name.ur}
+                  onChange={(e) => setFormData({...formData, name: {...formData.name, ur: e.target.value}})}
+                  required
+                />
+              </div>
+
+              <div>
+                <label>Icon/Emoji</label>
+                <input
+                  type="text"
+                  value={formData.icon}
+                  onChange={(e) => setFormData({...formData, icon: e.target.value})}
+                  placeholder="📦"
+                  maxLength="10"
+                  required
+                />
+              </div>
+
+              <div>
+                <label>Slug (Auto-generated)</label>
+                <input
+                  type="text"
+                  value={formData.slug}
+                  onChange={(e) => setFormData({...formData, slug: e.target.value})}
+                  required
+                />
+              </div>
+
+              <div>
+                <label>Category Image URL</label>
+                <input
+                  type="url"
+                  value={formData.image}
+                  onChange={(e) => setFormData({...formData, image: e.target.value})}
+                  placeholder="/api/placeholder/300/300"
+                />
+              </div>
+
+              <div className="flex gap-3">
+                <button type="submit" className="admin-btn admin-btn-primary">
+                  {editingItem ? 'Update Category' : 'Add Category'}
+                </button>
+                <button type="button" onClick={() => setShowCategoryModal(false)} className="admin-btn admin-btn-secondary">
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       </div>
-    </div>
-  );
+    );
+  };
 
-  const AdminOrders = () => (
-    <div className="space-y-6">
-      <h3 className="text-xl font-bold">Order Management</h3>
-      
-      <div className="admin-card">
-        <div className="overflow-x-auto">
-          <table className="admin-table">
-            <thead>
-              <tr>
-                <th>Order ID</th>
-                <th>Customer</th>
-                <th>Items</th>
-                <th>Total</th>
-                <th>Status</th>
-                <th>Date</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {Array.from({length: 10}, (_, i) => (
-                <tr key={i}>
-                  <td>ALB-2024-{String(i + 1).padStart(3, '0')}</td>
-                  <td>Customer {i + 1}</td>
-                  <td>{Math.floor(Math.random() * 5) + 1}</td>
-                  <td>Rs. {(Math.random() * 5000 + 1000).toFixed(0)}</td>
-                  <td>
-                    <span className={`status-badge ${['pending', 'processing', 'shipped', 'delivered'][Math.floor(Math.random() * 4)]}`}>
-                      {['Pending', 'Processing', 'Shipped', 'Delivered'][Math.floor(Math.random() * 4)]}
-                    </span>
-                  </td>
-                  <td>2024-01-{String(15 - i).padStart(2, '0')}</td>
-                  <td>
-                    <div className="flex gap-2">
-                      <button className="admin-btn admin-btn-secondary">
-                        <ApperIcon name="Eye" size={16} />
-                      </button>
-                      <button className="admin-btn admin-btn-primary">
-                        <ApperIcon name="Edit" size={16} />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+  const OrderModal = () => {
+    const [orderData, setOrderData] = useState({
+      Id: editingItem?.Id || 1,
+      orderNumber: editingItem?.orderNumber || 'ALB-2024-001',
+      customerName: editingItem?.customerName || 'Customer Name',
+      status: editingItem?.status || 'processing',
+      total: editingItem?.total || 0
+    });
+
+    const allowedStatuses = [
+      { value: 'processing', label: 'Processing' },
+      { value: 'packed', label: 'Packed' },
+      { value: 'shipped', label: 'Shipped' },
+      { value: 'delivered', label: 'Delivered' }
+    ];
+
+    const handleSubmit = (e) => {
+      e.preventDefault();
+      toast.success(`Order status updated to ${orderData.status}!`);
+      setShowOrderModal(false);
+      setEditingItem(null);
+    };
+
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="bg-white rounded-lg max-w-md w-full">
+          <div className="p-6">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-xl font-bold">Update Order Status</h2>
+              <button onClick={() => setShowOrderModal(false)}>
+                <ApperIcon name="X" size={24} />
+              </button>
+            </div>
+
+            <form onSubmit={handleSubmit} className="admin-form">
+              <div>
+                <label>Order Number</label>
+                <input
+                  type="text"
+                  value={orderData.orderNumber}
+                  readOnly
+                  className="bg-gray-100"
+                />
+              </div>
+
+              <div>
+                <label>Customer</label>
+                <input
+                  type="text"
+                  value={orderData.customerName}
+                  readOnly
+                  className="bg-gray-100"
+                />
+              </div>
+
+              <div>
+                <label>Order Status</label>
+                <select
+                  value={orderData.status}
+                  onChange={(e) => setOrderData({...orderData, status: e.target.value})}
+                  required
+                >
+                  {allowedStatuses.map(status => (
+                    <option key={status.value} value={status.value}>
+                      {status.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                <p className="text-sm text-yellow-800">
+                  <strong>Note:</strong> Order cancellation and deletion are not available for admin users. 
+                  Only status updates are permitted.
+                </p>
+              </div>
+
+              <div className="flex gap-3">
+                <button type="submit" className="admin-btn admin-btn-primary">
+                  Update Status
+                </button>
+                <button type="button" onClick={() => setShowOrderModal(false)} className="admin-btn admin-btn-secondary">
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       </div>
-    </div>
-  );
+    );
+  };
 
-  const AdminDiscounts = () => (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h3 className="text-xl font-bold">Discount Management</h3>
-        <button className="admin-btn admin-btn-primary">
-          <ApperIcon name="Plus" size={16} className="mr-2" />
-          Add Discount
-        </button>
-      </div>
-      
-      <div className="admin-card">
-        <div className="admin-form">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label>Discount Type</label>
-              <select>
-                <option>Percentage</option>
-                <option>Fixed Amount</option>
-              </select>
+  const SupportModal = () => {
+    const [response, setResponse] = useState('');
+    const message = editingItem;
+
+    const handleSubmit = (e) => {
+      e.preventDefault();
+      toast.success('Response sent successfully!');
+      setShowSupportModal(false);
+      setEditingItem(null);
+      setResponse('');
+    };
+
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+          <div className="p-6">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-xl font-bold">Support Message</h2>
+              <button onClick={() => setShowSupportModal(false)}>
+                <ApperIcon name="X" size={24} />
+              </button>
             </div>
-            
-            <div>
-              <label>Discount Value</label>
-              <input type="number" placeholder="20" />
-            </div>
-            
-            <div>
-              <label>Start Date</label>
-              <input type="date" />
-            </div>
-            
-            <div>
-              <label>End Date</label>
-              <input type="date" />
+
+            <div className="space-y-4">
+              <div className="bg-gray-50 rounded-lg p-4">
+                <div className="flex justify-between items-start mb-2">
+                  <div>
+                    <h3 className="font-semibold">{message?.customerName}</h3>
+                    <p className="text-sm text-gray-600">{message?.email}</p>
+                  </div>
+                  <span className={`status-badge ${message?.priority === 'high' ? 'cancelled' : message?.priority === 'medium' ? 'processing' : 'shipped'}`}>
+                    {message?.priority} priority
+                  </span>
+                </div>
+                <h4 className="font-medium mb-2">{message?.subject}</h4>
+                <p className="text-gray-700">{message?.message}</p>
+                <p className="text-xs text-gray-500 mt-2">{message?.date}</p>
+              </div>
+
+              <form onSubmit={handleSubmit} className="admin-form">
+                <div>
+                  <label>Your Response</label>
+                  <textarea
+                    value={response}
+                    onChange={(e) => setResponse(e.target.value)}
+                    placeholder="Type your response to the customer..."
+                    required
+                    rows="5"
+                  />
+                </div>
+
+                <div className="flex gap-3">
+                  <button type="submit" className="admin-btn admin-btn-primary">
+                    Send Response
+                  </button>
+                  <button type="button" onClick={() => setShowSupportModal(false)} className="admin-btn admin-btn-secondary">
+                    Cancel
+                  </button>
+                </div>
+              </form>
             </div>
           </div>
-          
-          <button className="admin-btn admin-btn-primary">
-            Apply Discount
+        </div>
+      </div>
+    );
+  };
+
+  const AdminProducts = () => {
+    const handleEdit = (product) => {
+      setEditingItem(product);
+      setShowProductModal(true);
+    };
+
+    const handleDelete = (product) => {
+      if (confirm(`Are you sure you want to delete ${product.name[language]}?`)) {
+        toast.success('Product deleted successfully!');
+      }
+    };
+
+    return (
+      <div className="space-y-6">
+        <div className="flex justify-between items-center">
+          <h3 className="text-xl font-bold">Product Management</h3>
+          <button 
+            onClick={() => {
+              setEditingItem(null);
+              setShowProductModal(true);
+            }}
+            className="admin-btn admin-btn-primary"
+          >
+            <ApperIcon name="Plus" size={16} className="mr-2" />
+            Add Product
           </button>
         </div>
-      </div>
-      
-      <div className="admin-card">
-        <h4 className="font-semibold mb-4">Active Discounts</h4>
-        <div className="space-y-3">
-          <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-            <div>
-              <div className="font-semibold">Site-wide Sale</div>
-              <div className="text-sm text-gray-600">20% off all items</div>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="status-badge processing">Active</span>
-              <button className="admin-btn admin-btn-danger">
-                <ApperIcon name="Trash2" size={16} />
-              </button>
-            </div>
+        
+        <div className="admin-card">
+          <div className="overflow-x-auto">
+            <table className="admin-table">
+              <thead>
+                <tr>
+                  <th>Image</th>
+                  <th>Name</th>
+                  <th>Price</th>
+                  <th>Discount</th>
+                  <th>Stock</th>
+                  <th>COD</th>
+                  <th>Category</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {mockProducts.map(product => (
+                  <tr key={product.Id}>
+                    <td>
+                      <img 
+                        src={product.image} 
+                        alt={product.name[language]}
+                        className="w-12 h-12 object-cover rounded"
+                      />
+                    </td>
+                    <td className="font-medium">{product.name[language]}</td>
+                    <td>Rs. {product.price.toLocaleString()}</td>
+                    <td>
+                      {product.discount > 0 ? (
+                        <span className="discount-badge">{product.discount}%</span>
+                      ) : (
+                        <span className="text-gray-400">No discount</span>
+                      )}
+                    </td>
+                    <td>
+                      <span className={`status-badge ${product.inStock ? 'processing' : 'cancelled'}`}>
+                        {product.inStock ? 'In Stock' : 'Out of Stock'}
+                      </span>
+                    </td>
+                    <td>
+                      <span className={`status-badge ${product.codEnabled !== false ? 'shipped' : 'cancelled'}`}>
+                        {product.codEnabled !== false ? 'Enabled' : 'Disabled'}
+                      </span>
+                    </td>
+                    <td className="capitalize">{product.category.replace('-', ' ')}</td>
+                    <td>
+                      <div className="flex gap-2">
+                        <button 
+                          onClick={() => handleEdit(product)}
+                          className="admin-btn admin-btn-secondary"
+                          title="Edit Product"
+                        >
+                          <ApperIcon name="Edit" size={16} />
+                        </button>
+                        <button 
+                          onClick={() => handleDelete(product)}
+                          className="admin-btn admin-btn-danger"
+                          title="Delete Product"
+                        >
+                          <ApperIcon name="Trash2" size={16} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
-          
-          <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-            <div>
-              <div className="font-semibold">Electronics Sale</div>
-              <div className="text-sm text-gray-600">30% off electronics</div>
+        </div>
+
+        {showProductModal && <ProductModal />}
+      </div>
+    );
+  };
+
+  const AdminCategories = () => {
+    const handleEdit = (category) => {
+      setEditingItem(category);
+      setShowCategoryModal(true);
+    };
+
+    const handleDelete = (category) => {
+      if (confirm(`Are you sure you want to delete ${category.name[language]}?`)) {
+        toast.success('Category deleted successfully!');
+      }
+    };
+
+    return (
+      <div className="space-y-6">
+        <div className="flex justify-between items-center">
+          <h3 className="text-xl font-bold">Category Management</h3>
+          <button 
+            onClick={() => {
+              setEditingItem(null);
+              setShowCategoryModal(true);
+            }}
+            className="admin-btn admin-btn-primary"
+          >
+            <ApperIcon name="Plus" size={16} className="mr-2" />
+            Add Category
+          </button>
+        </div>
+        
+        <div className="admin-card">
+          <div className="overflow-x-auto">
+            <table className="admin-table">
+              <thead>
+                <tr>
+                  <th>Icon</th>
+                  <th>Image</th>
+                  <th>Name (English)</th>
+                  <th>Name (Urdu)</th>
+                  <th>Slug</th>
+                  <th>Products</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {mockCategories.map(category => {
+                  const productCount = mockProducts.filter(p => p.category === category.slug).length;
+                  return (
+                    <tr key={category.Id}>
+                      <td className="text-2xl">{category.icon}</td>
+                      <td>
+                        <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center">
+                          <ApperIcon name="Image" size={20} className="text-gray-400" />
+                        </div>
+                      </td>
+                      <td className="font-medium">{category.name.en}</td>
+                      <td>{category.name.ur}</td>
+                      <td className="text-sm text-gray-600">{category.slug}</td>
+                      <td>
+                        <span className="status-badge processing">{productCount} products</span>
+                      </td>
+                      <td>
+                        <div className="flex gap-2">
+                          <button 
+                            onClick={() => handleEdit(category)}
+                            className="admin-btn admin-btn-secondary"
+                            title="Edit Category"
+                          >
+                            <ApperIcon name="Edit" size={16} />
+                          </button>
+                          <button 
+                            onClick={() => handleDelete(category)}
+                            className="admin-btn admin-btn-danger"
+                            title="Delete Category"
+                          >
+                            <ApperIcon name="Trash2" size={16} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {showCategoryModal && <CategoryModal />}
+      </div>
+    );
+  };
+
+  const AdminOrders = () => {
+    const mockOrdersData = [
+      { Id: 1, orderNumber: 'ALB-2024-001', customerName: 'Ahmed Ali', items: 3, total: 3200, status: 'processing', date: '2024-01-20' },
+      { Id: 2, orderNumber: 'ALB-2024-002', customerName: 'Fatima Khan', items: 2, total: 1800, status: 'packed', date: '2024-01-19' },
+      { Id: 3, orderNumber: 'ALB-2024-003', customerName: 'Hassan Sheikh', items: 1, total: 5400, status: 'shipped', date: '2024-01-18' },
+      { Id: 4, orderNumber: 'ALB-2024-004', customerName: 'Ayesha Malik', items: 4, total: 2100, status: 'delivered', date: '2024-01-17' },
+      { Id: 5, orderNumber: 'ALB-2024-005', customerName: 'Omar Farooq', items: 2, total: 3800, status: 'processing', date: '2024-01-16' }
+    ];
+
+    const handleViewOrder = (order) => {
+      toast.info(`Viewing order ${order.orderNumber}`);
+    };
+
+    const handleUpdateStatus = (order) => {
+      setEditingItem(order);
+      setShowOrderModal(true);
+    };
+
+    const getStatusColor = (status) => {
+      switch (status) {
+        case 'processing': return 'processing';
+        case 'packed': return 'pending';
+        case 'shipped': return 'shipped';
+        case 'delivered': return 'delivered';
+        default: return 'processing';
+      }
+    };
+
+    return (
+      <div className="space-y-6">
+        <div className="flex justify-between items-center">
+          <h3 className="text-xl font-bold">Order Management</h3>
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg px-3 py-2">
+            <p className="text-sm text-yellow-800">
+              <ApperIcon name="Info" size={16} className="inline mr-1" />
+              No cancel/delete options for admin
+            </p>
+          </div>
+        </div>
+        
+        <div className="admin-card">
+          <div className="overflow-x-auto">
+            <table className="admin-table">
+              <thead>
+                <tr>
+                  <th>Order ID</th>
+                  <th>Customer</th>
+                  <th>Items</th>
+                  <th>Total</th>
+                  <th>Status</th>
+                  <th>Date</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {mockOrdersData.map(order => (
+                  <tr key={order.Id}>
+                    <td className="font-medium">{order.orderNumber}</td>
+                    <td>{order.customerName}</td>
+                    <td>{order.items}</td>
+                    <td>Rs. {order.total.toLocaleString()}</td>
+                    <td>
+                      <span className={`status-badge ${getStatusColor(order.status)}`}>
+                        {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
+                      </span>
+                    </td>
+                    <td>{order.date}</td>
+                    <td>
+                      <div className="flex gap-2">
+                        <button 
+                          onClick={() => handleViewOrder(order)}
+                          className="admin-btn admin-btn-secondary"
+                          title="View Order Details"
+                        >
+                          <ApperIcon name="Eye" size={16} />
+                        </button>
+                        <button 
+                          onClick={() => handleUpdateStatus(order)}
+                          className="admin-btn admin-btn-primary"
+                          title="Update Order Status"
+                        >
+                          <ApperIcon name="Edit" size={16} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {showOrderModal && <OrderModal />}
+      </div>
+    );
+  };
+
+  const AdminDiscounts = () => {
+    const [discountForm, setDiscountForm] = useState({
+      type: 'percentage',
+      value: '',
+      target: 'sitewide',
+      productId: '',
+      categoryId: '',
+      startDate: '',
+      endDate: '',
+      description: ''
+    });
+
+    const handleApplyDiscount = (e) => {
+      e.preventDefault();
+      toast.success('Discount applied successfully!');
+      setDiscountForm({
+        type: 'percentage',
+        value: '',
+        target: 'sitewide',
+        productId: '',
+        categoryId: '',
+        startDate: '',
+        endDate: '',
+        description: ''
+      });
+    };
+
+    const handleRemoveDiscount = (discountName) => {
+      if (confirm(`Remove ${discountName}?`)) {
+        toast.success('Discount removed successfully!');
+      }
+    };
+
+    return (
+      <div className="space-y-6">
+        <div className="flex justify-between items-center">
+          <h3 className="text-xl font-bold">Discount Management</h3>
+        </div>
+        
+        <div className="admin-card">
+          <h4 className="font-semibold mb-4">Create New Discount</h4>
+          <form onSubmit={handleApplyDiscount} className="admin-form">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label>Discount Type</label>
+                <select
+                  value={discountForm.type}
+                  onChange={(e) => setDiscountForm({...discountForm, type: e.target.value})}
+                  required
+                >
+                  <option value="percentage">Percentage (%)</option>
+                  <option value="fixed">Fixed Amount (Rs.)</option>
+                </select>
+              </div>
+              
+              <div>
+                <label>Discount Value</label>
+                <input
+                  type="number"
+                  min="1"
+                  value={discountForm.value}
+                  onChange={(e) => setDiscountForm({...discountForm, value: e.target.value})}
+                  placeholder={discountForm.type === 'percentage' ? '20' : '500'}
+                  required
+                />
+              </div>
+
+              <div>
+                <label>Apply To</label>
+                <select
+                  value={discountForm.target}
+                  onChange={(e) => setDiscountForm({...discountForm, target: e.target.value})}
+                  required
+                >
+                  <option value="sitewide">Site-wide (All Products)</option>
+                  <option value="category">Specific Category</option>
+                  <option value="product">Specific Product</option>
+                </select>
+              </div>
+
+              {discountForm.target === 'category' && (
+                <div>
+                  <label>Select Category</label>
+                  <select
+                    value={discountForm.categoryId}
+                    onChange={(e) => setDiscountForm({...discountForm, categoryId: e.target.value})}
+                    required
+                  >
+                    <option value="">Choose Category</option>
+                    {mockCategories.map(cat => (
+                      <option key={cat.Id} value={cat.Id}>{cat.name.en}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              {discountForm.target === 'product' && (
+                <div>
+                  <label>Select Product</label>
+                  <select
+                    value={discountForm.productId}
+                    onChange={(e) => setDiscountForm({...discountForm, productId: e.target.value})}
+                    required
+                  >
+                    <option value="">Choose Product</option>
+                    {mockProducts.map(product => (
+                      <option key={product.Id} value={product.Id}>{product.name.en}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+              
+              <div>
+                <label>Start Date</label>
+                <input
+                  type="date"
+                  value={discountForm.startDate}
+                  onChange={(e) => setDiscountForm({...discountForm, startDate: e.target.value})}
+                  required
+                />
+              </div>
+              
+              <div>
+                <label>End Date</label>
+                <input
+                  type="date"
+                  value={discountForm.endDate}
+                  onChange={(e) => setDiscountForm({...discountForm, endDate: e.target.value})}
+                  required
+                />
+              </div>
             </div>
-            <div className="flex items-center gap-2">
-              <span className="status-badge processing">Active</span>
-              <button className="admin-btn admin-btn-danger">
-                <ApperIcon name="Trash2" size={16} />
-              </button>
+
+            <div>
+              <label>Description</label>
+              <input
+                type="text"
+                value={discountForm.description}
+                onChange={(e) => setDiscountForm({...discountForm, description: e.target.value})}
+                placeholder="e.g., Summer Sale, Electronics Deal"
+                required
+              />
+            </div>
+            
+            <button type="submit" className="admin-btn admin-btn-primary">
+              <ApperIcon name="Percent" size={16} className="mr-2" />
+              Apply Discount
+            </button>
+          </form>
+        </div>
+        
+        <div className="admin-card">
+          <h4 className="font-semibold mb-4">Active Discounts</h4>
+          <div className="space-y-3">
+            <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+              <div>
+                <div className="font-semibold">Site-wide Sale</div>
+                <div className="text-sm text-gray-600">20% off all items</div>
+                <div className="text-xs text-gray-500">Valid: 2024-01-01 to 2024-01-31</div>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="status-badge processing">Active</span>
+                <button 
+                  onClick={() => handleRemoveDiscount('Site-wide Sale')}
+                  className="admin-btn admin-btn-danger"
+                >
+                  <ApperIcon name="Trash2" size={16} />
+                </button>
+              </div>
+            </div>
+            
+            <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+              <div>
+                <div className="font-semibold">Electronics Sale</div>
+                <div className="text-sm text-gray-600">30% off electronics category</div>
+                <div className="text-xs text-gray-500">Valid: 2024-01-15 to 2024-02-15</div>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="status-badge processing">Active</span>
+                <button 
+                  onClick={() => handleRemoveDiscount('Electronics Sale')}
+                  className="admin-btn admin-btn-danger"
+                >
+                  <ApperIcon name="Trash2" size={16} />
+                </button>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+              <div>
+                <div className="font-semibold">Gaming Laptop Deal</div>
+                <div className="text-sm text-gray-600">Rs. 10,000 off specific product</div>
+                <div className="text-xs text-gray-500">Valid: 2024-01-10 to 2024-01-25</div>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="status-badge processing">Active</span>
+                <button 
+                  onClick={() => handleRemoveDiscount('Gaming Laptop Deal')}
+                  className="admin-btn admin-btn-danger"
+                >
+                  <ApperIcon name="Trash2" size={16} />
+                </button>
+              </div>
             </div>
           </div>
         </div>
       </div>
-    </div>
-  );
+    );
+  };
+
+  const AdminSupport = () => {
+    const handleRespond = (message) => {
+      setEditingItem(message);
+      setShowSupportModal(true);
+    };
+
+    const handleMarkResolved = (messageId) => {
+      toast.success('Message marked as resolved!');
+    };
+
+    const getPriorityColor = (priority) => {
+      switch (priority) {
+        case 'high': return 'cancelled';
+        case 'medium': return 'processing';
+        case 'low': return 'shipped';
+        default: return 'processing';
+      }
+    };
+
+    const getStatusColor = (status) => {
+      switch (status) {
+        case 'pending': return 'pending';
+        case 'responded': return 'processing';
+        case 'resolved': return 'delivered';
+        default: return 'pending';
+      }
+    };
+
+    return (
+      <div className="space-y-6">
+        <div className="flex justify-between items-center">
+          <h3 className="text-xl font-bold">Support Messages</h3>
+          <div className="flex gap-2">
+            <span className="status-badge cancelled">
+              {supportMessages.filter(m => m.status === 'pending').length} Pending
+            </span>
+            <span className="status-badge processing">
+              {supportMessages.filter(m => m.status === 'responded').length} Responded
+            </span>
+            <span className="status-badge delivered">
+              {supportMessages.filter(m => m.status === 'resolved').length} Resolved
+            </span>
+          </div>
+        </div>
+        
+        <div className="admin-card">
+          <div className="overflow-x-auto">
+            <table className="admin-table">
+              <thead>
+                <tr>
+                  <th>Customer</th>
+                  <th>Subject</th>
+                  <th>Message</th>
+                  <th>Priority</th>
+                  <th>Status</th>
+                  <th>Date</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {supportMessages.map(message => (
+                  <tr key={message.Id}>
+                    <td>
+                      <div>
+                        <div className="font-medium">{message.customerName}</div>
+                        <div className="text-sm text-gray-600">{message.email}</div>
+                      </div>
+                    </td>
+                    <td className="font-medium">{message.subject}</td>
+                    <td className="max-w-xs">
+                      <div className="truncate text-sm text-gray-600" title={message.message}>
+                        {message.message}
+                      </div>
+                    </td>
+                    <td>
+                      <span className={`status-badge ${getPriorityColor(message.priority)}`}>
+                        {message.priority}
+                      </span>
+                    </td>
+                    <td>
+                      <span className={`status-badge ${getStatusColor(message.status)}`}>
+                        {message.status}
+                      </span>
+                    </td>
+                    <td>{message.date}</td>
+                    <td>
+                      <div className="flex gap-2">
+                        <button 
+                          onClick={() => handleRespond(message)}
+                          className="admin-btn admin-btn-primary"
+                          title="Respond to Message"
+                        >
+                          <ApperIcon name="MessageSquare" size={16} />
+                        </button>
+                        {message.status !== 'resolved' && (
+                          <button 
+                            onClick={() => handleMarkResolved(message.Id)}
+                            className="admin-btn admin-btn-secondary"
+                            title="Mark as Resolved"
+                          >
+                            <ApperIcon name="Check" size={16} />
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {showSupportModal && <SupportModal />}
+      </div>
+    );
+  };
 
   const renderTabContent = () => {
     switch (activeTab) {
@@ -2196,6 +3074,7 @@ const Admin = () => {
       case 'categories': return <AdminCategories />;
       case 'orders': return <AdminOrders />;
       case 'discounts': return <AdminDiscounts />;
+      case 'support': return <AdminSupport />;
       default: return <AdminDashboard />;
     }
   };
@@ -2239,12 +3118,12 @@ const Admin = () => {
         
         {/* Tab Content */}
         {renderTabContent()}
+{/* Tab Content */}
+        {renderTabContent()}
       </div>
     </div>
   );
 };
-
-// Main App Component
 function App() {
   return (
     <ErrorBoundary>
