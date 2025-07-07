@@ -1698,13 +1698,30 @@ const Orders = () => {
 };
 
 const Profile = () => {
-  const { language, user, setUser, wishlist, recentlyViewed, isAdmin, setIsAdmin } = useApp();
-  const navigate = useNavigate();
+const navigate = useNavigate();
+
+  // Check for persistent login on component mount
+  useEffect(() => {
+    const savedUser = localStorage.getItem('alibix-user');
+    const savedIsAdmin = localStorage.getItem('alibix-is-admin');
+    
+    if (savedUser) {
+      try {
+        const userData = JSON.parse(savedUser);
+        setUser(userData);
+        setIsAdmin(savedIsAdmin === 'true');
+      } catch (error) {
+        // Clear corrupted data
+        localStorage.removeItem('alibix-user');
+        localStorage.removeItem('alibix-is-admin');
+      }
+    }
+  }, [setUser, setIsAdmin]);
 
   const handleGoogleLogin = () => {
     // Mock Google login with admin email check
     const mockUser = {
-      name: 'John Doe',
+      name: 'Admin User',
       email: 'alibix07@gmail.com',
       avatar: '/api/placeholder/100/100'
     };
@@ -1714,6 +1731,10 @@ const Profile = () => {
     // Check if user is admin (specific Gmail address)
     const isAdminUser = mockUser.email === 'alibix07@gmail.com';
     setIsAdmin(isAdminUser);
+    
+    // Persist login state
+    localStorage.setItem('alibix-user', JSON.stringify(mockUser));
+    localStorage.setItem('alibix-is-admin', isAdminUser.toString());
     
     if (isAdminUser) {
       toast.success(language === 'en' ? 'Admin login successful!' : 'ایڈمن لاگ ان کامیاب!');
@@ -1732,12 +1753,22 @@ const Profile = () => {
     
     setUser(mockCustomer);
     setIsAdmin(false);
+    
+    // Persist login state
+    localStorage.setItem('alibix-user', JSON.stringify(mockCustomer));
+    localStorage.setItem('alibix-is-admin', 'false');
+    
     toast.success(language === 'en' ? 'Customer login successful!' : 'کسٹمر لاگ ان کامیاب!');
   };
 
   const handleLogout = () => {
     setUser(null);
     setIsAdmin(false);
+    
+    // Clear persistent login
+    localStorage.removeItem('alibix-user');
+    localStorage.removeItem('alibix-is-admin');
+    
     toast.success(language === 'en' ? 'Logged out successfully!' : 'کامیابی سے لاگ آؤٹ ہوگئے!');
   };
 
@@ -1789,16 +1820,25 @@ const Profile = () => {
         </div>
       ) : (
         <div className="space-y-6">
-          <div className="admin-card">
+<div className="admin-card">
             <div className="flex items-center gap-4 mb-4">
-              <img
-                src={user.avatar}
-                alt={user.name}
-                className="w-16 h-16 rounded-full object-cover"
-              />
+              <div className="relative">
+                <img
+                  src={user.avatar}
+                  alt={user.name}
+                  className="w-20 h-20 rounded-full object-cover border-4 border-primary shadow-lg ring-4 ring-primary/20"
+                  style={{
+                    background: 'linear-gradient(135deg, #CFA75F 0%, #FFD700 100%)',
+                    padding: '2px'
+                  }}
+                />
+                <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-green-500 border-2 border-white rounded-full flex items-center justify-center">
+                  <ApperIcon name="Check" size={12} className="text-white" />
+                </div>
+              </div>
               <div>
                 <h3 className="font-semibold text-lg">{user.name}</h3>
-                <p className="text-gray-600">{user.email}</p>
+                <p className="text-gray-600 dark:text-gray-400">{user.email}</p>
                 {isAdmin && (
                   <span className="status-badge processing">
                     {language === 'en' ? 'Admin' : 'ایڈمن'}
@@ -2814,23 +2854,31 @@ const tabs = [
   };
 
   const AdminOrders = () => {
-    const mockOrdersData = [
-      { Id: 1, orderNumber: 'ALB-2024-001', customerName: 'Ahmed Ali', items: 3, total: 3200, status: 'processing', date: '2024-01-20' },
-      { Id: 2, orderNumber: 'ALB-2024-002', customerName: 'Fatima Khan', items: 2, total: 1800, status: 'packed', date: '2024-01-19' },
-      { Id: 3, orderNumber: 'ALB-2024-003', customerName: 'Hassan Sheikh', items: 1, total: 5400, status: 'shipped', date: '2024-01-18' },
-      { Id: 4, orderNumber: 'ALB-2024-004', customerName: 'Ayesha Malik', items: 4, total: 2100, status: 'delivered', date: '2024-01-17' },
-      { Id: 5, orderNumber: 'ALB-2024-005', customerName: 'Omar Farooq', items: 2, total: 3800, status: 'processing', date: '2024-01-16' }
+const mockOrdersData = [
+      { Id: 1, orderNumber: 'ALB-2024-001', customerName: 'Ahmed Ali', items: 3, total: 3200, status: 'processing', date: '2024-01-20', isTestOrder: false },
+      { Id: 2, orderNumber: 'ALB-2024-002', customerName: 'Fatima Khan', items: 2, total: 1800, status: 'packed', date: '2024-01-19', isTestOrder: false },
+      { Id: 3, orderNumber: 'ALB-2024-003', customerName: 'Hassan Sheikh', items: 1, total: 5400, status: 'shipped', date: '2024-01-18', isTestOrder: false },
+      { Id: 4, orderNumber: 'ALB-2024-004', customerName: 'Test Customer', items: 4, total: 2100, status: 'delivered', date: '2024-01-17', isTestOrder: true },
+      { Id: 5, orderNumber: 'ALB-2024-005', customerName: 'Omar Farooq', items: 2, total: 3800, status: 'processing', date: '2024-01-16', isTestOrder: false },
+      { Id: 6, orderNumber: 'ALB-2024-006', customerName: 'Fake User', items: 1, total: 100, status: 'processing', date: '2024-01-15', isTestOrder: true },
+      { Id: 7, orderNumber: 'ALB-2024-007', customerName: 'Demo Account', items: 3, total: 500, status: 'packed', date: '2024-01-14', isTestOrder: true }
     ];
 
     const handleViewOrder = (order) => {
       toast.info(`Viewing order ${order.orderNumber}`);
     };
 
-    const handleUpdateStatus = (order) => {
+const handleUpdateStatus = (order) => {
       setEditingItem(order);
       setShowOrderModal(true);
     };
 
+    const handleRemoveOrder = (order) => {
+      if (confirm(`Are you sure you want to remove order ${order.orderNumber}? This action cannot be undone.`)) {
+        toast.success(`Order ${order.orderNumber} removed successfully!`);
+        // In real implementation, this would remove from state/database
+      }
+    };
     const getStatusColor = (status) => {
       switch (status) {
         case 'processing': return 'processing';
@@ -2855,7 +2903,7 @@ const tabs = [
         
         <div className="admin-card">
           <div className="overflow-x-auto">
-            <table className="admin-table">
+<table className="admin-table">
               <thead>
                 <tr>
                   <th>Order ID</th>
@@ -2863,21 +2911,42 @@ const tabs = [
                   <th>Items</th>
                   <th>Total</th>
                   <th>Status</th>
+                  <th>Type</th>
                   <th>Date</th>
                   <th>Actions</th>
                 </tr>
               </thead>
               <tbody>
-                {mockOrdersData.map(order => (
-                  <tr key={order.Id}>
+{mockOrdersData.map(order => (
+                  <tr key={order.Id} className={order.isTestOrder ? 'bg-orange-50 dark:bg-orange-900/20' : ''}>
                     <td className="font-medium">{order.orderNumber}</td>
-                    <td>{order.customerName}</td>
+                    <td>
+                      <div className="flex items-center gap-2">
+                        {order.customerName}
+                        {order.isTestOrder && (
+                          <ApperIcon name="TestTube" size={14} className="text-orange-500" title="Test Order" />
+                        )}
+                      </div>
+                    </td>
                     <td>{order.items}</td>
                     <td>Rs. {order.total.toLocaleString()}</td>
                     <td>
                       <span className={`status-badge ${getStatusColor(order.status)}`}>
                         {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
                       </span>
+                    </td>
+                    <td>
+                      {order.isTestOrder ? (
+                        <span className="status-badge cancelled">
+                          <ApperIcon name="Flask" size={12} className="inline mr-1" />
+                          Test/Fake
+                        </span>
+                      ) : (
+                        <span className="status-badge delivered">
+                          <ApperIcon name="User" size={12} className="inline mr-1" />
+                          Real
+                        </span>
+                      )}
                     </td>
                     <td>{order.date}</td>
                     <td>
@@ -2896,6 +2965,15 @@ const tabs = [
                         >
                           <ApperIcon name="Edit" size={16} />
                         </button>
+                        {order.isTestOrder && (
+                          <button 
+                            onClick={() => handleRemoveOrder(order)}
+                            className="admin-btn admin-btn-danger"
+                            title="Remove Test/Fake Order"
+                          >
+                            <ApperIcon name="Trash2" size={16} />
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>
