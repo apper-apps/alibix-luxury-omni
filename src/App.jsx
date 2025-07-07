@@ -1,8 +1,8 @@
 import 'react-toastify/dist/ReactToastify.css'
-import React, { useContext, useEffect, useState } from 'react'
-import { BrowserRouter, Link, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
-import { ToastContainer, toast } from 'react-toastify'
-import ApperIcon from '@/components/ApperIcon'
+import React, { useContext, useEffect, useState } from "react";
+import { BrowserRouter, Link, Route, Routes, useLocation, useNavigate } from "react-router-dom";
+import { ToastContainer, toast } from "react-toastify";
+import ApperIcon from "@/components/ApperIcon";
 
 // Error Boundary Component
 class ErrorBoundary extends React.Component {
@@ -59,7 +59,15 @@ const mockProducts = [
     country: "Pakistan",
     isFromChina: false,
     codEnabled: true,
-    deliveryDays: 3
+    deliveryDays: 3,
+    flashSale: {
+      isActive: true,
+      flashPrice: 1500,
+      startTime: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(), // Started 2 hours ago
+      endTime: new Date(Date.now() + 1000 * 60 * 60 * 6).toISOString(), // Ends in 6 hours
+      originalDiscount: 20,
+      flashDiscount: 40
+    }
   },
 {
     Id: 2,
@@ -76,7 +84,15 @@ const mockProducts = [
     country: "Turkey",
     isFromChina: false,
     codEnabled: true,
-    deliveryDays: 5
+    deliveryDays: 5,
+    flashSale: {
+      isActive: true,
+      flashPrice: 1200,
+      startTime: new Date(Date.now() - 1000 * 60 * 30).toISOString(), // Started 30 minutes ago
+      endTime: new Date(Date.now() + 1000 * 60 * 60 * 4).toISOString(), // Ends in 4 hours
+      originalDiscount: 20,
+      flashDiscount: 40
+    }
   },
 {
     Id: 3,
@@ -120,7 +136,15 @@ const mockProducts = [
     rating: 4.4,
     reviews: 167,
     country: "Korea",
-    isFromChina: false
+    isFromChina: false,
+    flashSale: {
+      isActive: true,
+      flashPrice: 900,
+      startTime: new Date(Date.now() - 1000 * 60 * 60).toISOString(), // Started 1 hour ago
+      endTime: new Date(Date.now() + 1000 * 60 * 60 * 8).toISOString(), // Ends in 8 hours
+      originalDiscount: 20,
+      flashDiscount: 40
+    }
   },
   {
     Id: 6,
@@ -134,7 +158,15 @@ const mockProducts = [
     rating: 4.8,
     reviews: 312,
     country: "USA",
-    isFromChina: false
+    isFromChina: false,
+    flashSale: {
+      isActive: true,
+      flashPrice: 65000,
+      startTime: new Date(Date.now() - 1000 * 60 * 15).toISOString(), // Started 15 minutes ago
+      endTime: new Date(Date.now() + 1000 * 60 * 60 * 12).toISOString(), // Ends in 12 hours
+      originalDiscount: 20,
+      flashDiscount: 35
+    }
   }
 ];
 
@@ -794,6 +826,71 @@ const CategoryScroll = () => {
   );
 };
 
+// Flash Sale Countdown Component
+const FlashSaleCountdown = ({ endTime, language, onExpire }) => {
+  const [timeLeft, setTimeLeft] = useState({ hours: 0, minutes: 0, seconds: 0 });
+  const [isExpired, setIsExpired] = useState(false);
+
+  useEffect(() => {
+    const calculateTimeLeft = () => {
+      const now = new Date().getTime();
+      const end = new Date(endTime).getTime();
+      const difference = end - now;
+
+      if (difference > 0) {
+        const hours = Math.floor(difference / (1000 * 60 * 60));
+        const minutes = Math.floor((difference % (1000 * 60 * 60)) / (1000 * 60));
+        const seconds = Math.floor((difference % (1000 * 60)) / 1000);
+        
+        setTimeLeft({ hours, minutes, seconds });
+        setIsExpired(false);
+      } else {
+        setTimeLeft({ hours: 0, minutes: 0, seconds: 0 });
+        if (!isExpired) {
+          setIsExpired(true);
+          onExpire && onExpire();
+          toast.info(language === 'en' ? 'Flash sale has ended!' : 'فلیش سیل ختم ہو گئی!');
+        }
+      }
+    };
+
+    calculateTimeLeft();
+    const timer = setInterval(calculateTimeLeft, 1000);
+
+    return () => clearInterval(timer);
+  }, [endTime, isExpired, onExpire, language]);
+
+  if (isExpired) {
+    return (
+      <div className="text-center py-4">
+        <span className="text-red-500 font-bold">
+          {language === 'en' ? 'Flash Sale Ended' : 'فلیش سیل ختم'}
+        </span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex justify-center gap-2 md:gap-4 text-white">
+      <div className="text-center bg-black/20 rounded-lg px-2 py-1 md:px-3 md:py-2 min-w-[50px]">
+        <div className="text-lg md:text-2xl font-bold">{timeLeft.hours.toString().padStart(2, '0')}</div>
+        <div className="text-xs md:text-sm">{language === 'en' ? 'Hours' : 'گھنٹے'}</div>
+      </div>
+      <div className="text-lg md:text-2xl font-bold self-center">:</div>
+      <div className="text-center bg-black/20 rounded-lg px-2 py-1 md:px-3 md:py-2 min-w-[50px]">
+        <div className="text-lg md:text-2xl font-bold">{timeLeft.minutes.toString().padStart(2, '0')}</div>
+        <div className="text-xs md:text-sm">{language === 'en' ? 'Minutes' : 'منٹ'}</div>
+      </div>
+      <div className="text-lg md:text-2xl font-bold self-center">:</div>
+      <div className="text-center bg-black/20 rounded-lg px-2 py-1 md:px-3 md:py-2 min-w-[50px]">
+        <div className="text-lg md:text-2xl font-bold">{timeLeft.seconds.toString().padStart(2, '0')}</div>
+        <div className="text-xs md:text-sm">{language === 'en' ? 'Seconds' : 'سیکنڈ'}</div>
+      </div>
+    </div>
+  );
+};
+
+// Enhanced Product Card with Flash Sale Support
 const ProductCard = ({ product }) => {
   const { language, addToCart, addToWishlist, wishlist, addToRecentlyViewed } = useApp();
   const navigate = useNavigate();
@@ -802,7 +899,15 @@ const ProductCard = ({ product }) => {
   const [imageLoaded, setImageLoaded] = useState(false);
 
   const isInWishlist = wishlist.some(item => item.Id === product.Id);
-  const discountAmount = Math.round(product.originalPrice - product.price);
+  
+  // Check if flash sale is active and not expired
+  const isFlashSaleActive = product.flashSale && 
+    product.flashSale.isActive && 
+    new Date(product.flashSale.endTime) > new Date();
+  
+  const displayPrice = isFlashSaleActive ? product.flashSale.flashPrice : product.price;
+  const displayDiscount = isFlashSaleActive ? product.flashSale.flashDiscount : product.discount;
+  const discountAmount = Math.round(product.originalPrice - displayPrice);
 
   const handleProductClick = () => {
     addToRecentlyViewed(product);
@@ -812,7 +917,11 @@ const ProductCard = ({ product }) => {
   const handleQuickAdd = (e) => {
     e.stopPropagation();
     if (product.inStock) {
-      addToCart(product, 1, selectedSize, selectedColor);
+      // Use flash sale price if active
+      const productToAdd = isFlashSaleActive 
+        ? { ...product, price: displayPrice, discount: displayDiscount }
+        : product;
+      addToCart(productToAdd, 1, selectedSize, selectedColor);
     }
   };
 
@@ -839,9 +948,16 @@ const ProductCard = ({ product }) => {
             onLoad={() => setImageLoaded(true)}
           />
           
-          {product.discount > 0 && (
-            <div className="absolute top-2 left-2 discount-badge">
-              -{product.discount}%
+          {isFlashSaleActive && (
+            <div className="absolute top-2 left-2 bg-gradient-to-r from-red-500 to-pink-500 text-white px-2 py-1 rounded-full text-xs font-bold animate-pulse">
+              <ApperIcon name="Zap" size={12} className="inline mr-1" />
+              {language === 'en' ? 'FLASH' : 'فلیش'}
+            </div>
+          )}
+          
+          {displayDiscount > 0 && (
+            <div className="absolute top-2 right-12 discount-badge">
+              -{displayDiscount}%
             </div>
           )}
           
@@ -862,7 +978,8 @@ const ProductCard = ({ product }) => {
             />
           </button>
         </div>
-<div className="p-4">
+        
+        <div className="p-4">
           <div className="flex items-center gap-2 mb-2">
             <div className="country-badge">
               {product.country}
@@ -891,11 +1008,20 @@ const ProductCard = ({ product }) => {
           </div>
           
           <div className="flex items-center gap-2 mb-3">
-            <span className="price-discount">Rs. {product.price.toLocaleString()}</span>
-            {product.originalPrice > product.price && (
+            <span className={`font-bold text-lg ${isFlashSaleActive ? 'text-red-500' : 'text-primary'}`}>
+              Rs. {displayPrice.toLocaleString()}
+            </span>
+            {product.originalPrice > displayPrice && (
               <span className="price-original">Rs. {product.originalPrice.toLocaleString()}</span>
             )}
           </div>
+          
+          {isFlashSaleActive && (
+            <div className="mb-3 text-xs text-red-600 font-medium">
+              <ApperIcon name="Clock" size={12} className="inline mr-1" />
+              {language === 'en' ? 'Limited Time Offer!' : 'محدود وقت کی پیشکش!'}
+            </div>
+          )}
           
           {product.sizes && (
             <div className="mb-3">
@@ -946,12 +1072,14 @@ const ProductCard = ({ product }) => {
             </div>
           )}
           
-<button
+          <button
             onClick={handleQuickAdd}
             disabled={!product.inStock}
             className={`w-full py-2 px-4 rounded-lg text-sm font-medium transition-all ${
               product.inStock
-                ? 'bg-primary text-white hover:bg-yellow-600'
+                ? isFlashSaleActive 
+                  ? 'bg-gradient-to-r from-red-500 to-pink-500 text-white hover:from-red-600 hover:to-pink-600'
+                  : 'bg-primary text-white hover:bg-yellow-600'
                 : 'bg-gray-200 text-gray-400 cursor-not-allowed'
             }`}
           >
@@ -963,7 +1091,7 @@ const ProductCard = ({ product }) => {
         </div>
       </div>
     </div>
-  );
+);
 };
 
 const MobileNavigation = () => {
@@ -1085,6 +1213,7 @@ const Layout = ({ children }) => {
 const Home = () => {
   const { language, recentlyViewed } = useApp();
   const [currentSlide, setCurrentSlide] = useState(0);
+  const [flashSaleProducts, setFlashSaleProducts] = useState([]);
 
   const bannerSlides = [
     { id: 1, image: '/api/placeholder/800/300', title: 'Summer Sale 50% Off', subtitle: 'Limited Time Offer' },
@@ -1092,12 +1221,52 @@ const Home = () => {
     { id: 3, image: '/api/placeholder/800/300', title: 'Electronics Sale', subtitle: 'Up to 70% Off' }
   ];
 
+  // Filter active flash sale products
+  useEffect(() => {
+    const updateFlashSaleProducts = () => {
+      const activeFlashSales = mockProducts.filter(product => {
+        if (!product.flashSale || !product.flashSale.isActive) return false;
+        const now = new Date();
+        const endTime = new Date(product.flashSale.endTime);
+        return endTime > now;
+      });
+      setFlashSaleProducts(activeFlashSales);
+    };
+
+    updateFlashSaleProducts();
+    // Update every minute to check for expired sales
+    const interval = setInterval(updateFlashSaleProducts, 60000);
+    return () => clearInterval(interval);
+  }, []);
+
   useEffect(() => {
     const timer = setInterval(() => {
       setCurrentSlide((prev) => (prev + 1) % bannerSlides.length);
     }, 5000);
     return () => clearInterval(timer);
   }, [bannerSlides.length]);
+
+  const handleFlashSaleExpire = () => {
+    // Update flash sale products when a sale expires
+    const activeFlashSales = mockProducts.filter(product => {
+      if (!product.flashSale || !product.flashSale.isActive) return false;
+      const now = new Date();
+      const endTime = new Date(product.flashSale.endTime);
+      return endTime > now;
+    });
+    setFlashSaleProducts(activeFlashSales);
+  };
+
+  // Get the earliest ending flash sale for main countdown
+  const getEarliestEndTime = () => {
+    if (flashSaleProducts.length === 0) return null;
+    return flashSaleProducts.reduce((earliest, product) => {
+      const endTime = new Date(product.flashSale.endTime);
+      return !earliest || endTime < new Date(earliest) ? product.flashSale.endTime : earliest;
+    }, null);
+  };
+
+  const earliestEndTime = getEarliestEndTime();
 
   return (
     <div className="space-y-6">
@@ -1138,6 +1307,54 @@ const Home = () => {
         </div>
       </div>
 
+      {/* Flash Sale Section */}
+      {flashSaleProducts.length > 0 && (
+        <div className="mx-4">
+          <div className="bg-gradient-to-r from-red-500 via-pink-500 to-red-600 text-white p-4 md:p-6 rounded-xl shadow-lg">
+            <div className="text-center mb-4">
+              <div className="flex items-center justify-center gap-2 mb-2">
+                <ApperIcon name="Zap" size={24} className="text-yellow-300" />
+                <h3 className="text-xl md:text-2xl font-bold">
+                  {language === 'en' ? '⚡ FLASH SALE ⚡' : '⚡ فلیش سیل ⚡'}
+                </h3>
+                <ApperIcon name="Zap" size={24} className="text-yellow-300" />
+              </div>
+              <p className="text-sm md:text-base opacity-90 mb-4">
+                {language === 'en' ? 'Limited Time Offers - Hurry Up!' : 'محدود وقت کی پیشکشات - جلدی کریں!'}
+              </p>
+              
+              {earliestEndTime && (
+                <div>
+                  <h4 className="text-sm md:text-base font-semibold mb-2">
+                    {language === 'en' ? 'Sale Ends In:' : 'سیل ختم ہونے میں:'}
+                  </h4>
+                  <FlashSaleCountdown 
+                    endTime={earliestEndTime} 
+                    language={language}
+                    onExpire={handleFlashSaleExpire}
+                  />
+                </div>
+              )}
+            </div>
+          </div>
+          
+          {/* Flash Sale Products */}
+          <div className="mt-4">
+            <h2 className="text-xl font-bold mb-4 text-red-600">
+              <ApperIcon name="Flame" size={20} className="inline mr-2" />
+              {language === 'en' ? 'Flash Sale Products' : 'فلیش سیل پروڈکٹس'}
+            </h2>
+            <div className="flex gap-4 overflow-x-auto hide-scrollbar mobile-scroll pb-2">
+              {flashSaleProducts.map(product => (
+                <div key={product.Id} className="min-w-[200px] md:min-w-[250px] flex-shrink-0">
+                  <ProductCard product={product} />
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Categories */}
       <CategoryScroll />
 
@@ -1169,30 +1386,19 @@ const Home = () => {
         </div>
       </div>
 
-{/* Discount Timer */}
-      <div className="mx-4 bg-gradient-to-r from-primary to-yellow-600 text-white p-4 rounded-xl">
-        <div className="text-center">
-          <h3 className="text-lg font-bold mb-2">
-            {language === 'en' ? 'Flash Sale Ends In:' : 'فلیش سیل ختم ہونے میں:'}
-          </h3>
-          <div className="flex justify-center gap-4 text-2xl font-bold">
-            <div className="text-center">
-              <div>02</div>
-              <div className="text-xs">{language === 'en' ? 'Hours' : 'گھنٹے'}</div>
-            </div>
-            <div>:</div>
-            <div className="text-center">
-              <div>30</div>
-              <div className="text-xs">{language === 'en' ? 'Minutes' : 'منٹ'}</div>
-            </div>
-            <div>:</div>
-            <div className="text-center">
-              <div>45</div>
-              <div className="text-xs">{language === 'en' ? 'Seconds' : 'سیکنڈ'}</div>
-            </div>
+      {/* Special Offers Info */}
+      {flashSaleProducts.length === 0 && (
+        <div className="mx-4 bg-gradient-to-r from-primary to-yellow-600 text-white p-4 rounded-xl">
+          <div className="text-center">
+            <h3 className="text-lg font-bold mb-2">
+              {language === 'en' ? 'Stay Tuned for Flash Sales!' : 'فلیش سیلز کے لیے منتظر رہیں!'}
+            </h3>
+            <p className="text-sm opacity-90">
+              {language === 'en' ? 'Amazing deals coming soon' : 'حیرت انگیز ڈیلز جلد آ رہے ہیں'}
+            </p>
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 };
@@ -1696,9 +1902,9 @@ const Cart = () => {
 };
 
 const Checkout = () => {
-  const { language, cart } = useApp();
+  const { language, cart, setCart } = useApp();
   const navigate = useNavigate();
-const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState({
     fullName: '',
     email: '',
     address: '',
@@ -2438,12 +2644,13 @@ const Admin = () => {
     );
   }
 
-  const tabs = [
+const tabs = [
     { id: 'dashboard', label: language === 'en' ? 'Dashboard' : 'ڈیش بورڈ', icon: 'BarChart3' },
     { id: 'products', label: language === 'en' ? 'Products' : 'پروڈکٹس', icon: 'Package' },
     { id: 'categories', label: language === 'en' ? 'Categories' : 'کیٹیگریز', icon: 'Grid3x3' },
     { id: 'orders', label: language === 'en' ? 'Orders' : 'آرڈرز', icon: 'ShoppingCart' },
     { id: 'discounts', label: language === 'en' ? 'Discounts' : 'ڈسکاؤنٹس', icon: 'Percent' },
+    { id: 'flashsales', label: language === 'en' ? 'Flash Sales' : 'فلیش سیلز', icon: 'Zap' },
     { id: 'support', label: language === 'en' ? 'Support' : 'سپورٹ', icon: 'MessageCircle' }
   ];
 
@@ -3677,7 +3884,374 @@ const Admin = () => {
           </div>
         </div>
 
-        {showSupportModal && <SupportModal />}
+{showSupportModal && <SupportModal />}
+      </div>
+    );
+  };
+
+  const AdminFlashSales = () => {
+    const [showFlashSaleModal, setShowFlashSaleModal] = useState(false);
+    const [editingFlashSale, setEditingFlashSale] = useState(null);
+    
+    // Mock flash sales data for admin management
+    const [flashSales, setFlashSales] = useState([
+      {
+        Id: 1,
+        name: 'Weekend Flash Sale',
+        productIds: [1, 2],
+        discount: 40,
+        startTime: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(),
+        endTime: new Date(Date.now() + 1000 * 60 * 60 * 6).toISOString(),
+        status: 'active',
+        description: 'Special weekend deals on selected items'
+      },
+      {
+        Id: 2,
+        name: 'Beauty Flash Sale',
+        productIds: [5],
+        discount: 40,
+        startTime: new Date(Date.now() - 1000 * 60 * 60).toISOString(),
+        endTime: new Date(Date.now() + 1000 * 60 * 60 * 8).toISOString(),
+        status: 'active',
+        description: 'Flash sale on beauty products'
+      },
+      {
+        Id: 3,
+        name: 'Electronics Super Sale',
+        productIds: [6],
+        discount: 35,
+        startTime: new Date(Date.now() - 1000 * 60 * 15).toISOString(),
+        endTime: new Date(Date.now() + 1000 * 60 * 60 * 12).toISOString(),
+        status: 'active',
+        description: 'Limited time electronics flash sale'
+      }
+    ]);
+
+    const handleCreateFlashSale = () => {
+      setEditingFlashSale(null);
+      setShowFlashSaleModal(true);
+    };
+
+    const handleEditFlashSale = (flashSale) => {
+      setEditingFlashSale(flashSale);
+      setShowFlashSaleModal(true);
+    };
+
+    const handleDeleteFlashSale = (flashSaleId) => {
+      if (confirm('Are you sure you want to delete this flash sale?')) {
+        setFlashSales(flashSales.filter(fs => fs.Id !== flashSaleId));
+        toast.success('Flash sale deleted successfully!');
+      }
+    };
+
+    const handleToggleStatus = (flashSaleId) => {
+      setFlashSales(flashSales.map(fs => 
+        fs.Id === flashSaleId 
+          ? { ...fs, status: fs.status === 'active' ? 'inactive' : 'active' }
+          : fs
+      ));
+      toast.success('Flash sale status updated!');
+    };
+
+    const getStatusColor = (status) => {
+      switch (status) {
+        case 'active': return 'processing';
+        case 'inactive': return 'cancelled';
+        case 'expired': return 'pending';
+        default: return 'processing';
+      }
+    };
+
+    const isFlashSaleActive = (flashSale) => {
+      const now = new Date();
+      const start = new Date(flashSale.startTime);
+      const end = new Date(flashSale.endTime);
+      return now >= start && now <= end && flashSale.status === 'active';
+    };
+
+    const FlashSaleModal = () => {
+      const [formData, setFormData] = useState({
+        name: editingFlashSale?.name || '',
+        productIds: editingFlashSale?.productIds || [],
+        discount: editingFlashSale?.discount || '',
+        startTime: editingFlashSale?.startTime ? new Date(editingFlashSale.startTime).toISOString().slice(0, 16) : '',
+        endTime: editingFlashSale?.endTime ? new Date(editingFlashSale.endTime).toISOString().slice(0, 16) : '',
+        description: editingFlashSale?.description || ''
+      });
+
+      const handleSubmit = (e) => {
+        e.preventDefault();
+        
+        const flashSaleData = {
+          ...formData,
+          Id: editingFlashSale?.Id || Date.now(),
+          status: 'active',
+          startTime: new Date(formData.startTime).toISOString(),
+          endTime: new Date(formData.endTime).toISOString()
+        };
+
+        if (editingFlashSale) {
+          setFlashSales(flashSales.map(fs => fs.Id === editingFlashSale.Id ? flashSaleData : fs));
+          toast.success('Flash sale updated successfully!');
+        } else {
+          setFlashSales([...flashSales, flashSaleData]);
+          toast.success('Flash sale created successfully!');
+        }
+
+        setShowFlashSaleModal(false);
+        setEditingFlashSale(null);
+      };
+
+      const handleProductSelection = (productId) => {
+        const isSelected = formData.productIds.includes(productId);
+        if (isSelected) {
+          setFormData({
+            ...formData,
+            productIds: formData.productIds.filter(id => id !== productId)
+          });
+        } else {
+          setFormData({
+            ...formData,
+            productIds: [...formData.productIds, productId]
+          });
+        }
+      };
+
+      return (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-xl font-bold">
+                  {editingFlashSale ? 'Edit Flash Sale' : 'Create Flash Sale'}
+                </h2>
+                <button onClick={() => setShowFlashSaleModal(false)}>
+                  <ApperIcon name="X" size={24} />
+                </button>
+              </div>
+
+              <form onSubmit={handleSubmit} className="admin-form">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label>Flash Sale Name</label>
+                    <input
+                      type="text"
+                      value={formData.name}
+                      onChange={(e) => setFormData({...formData, name: e.target.value})}
+                      placeholder="e.g., Weekend Flash Sale"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label>Discount Percentage (%)</label>
+                    <input
+                      type="number"
+                      min="1"
+                      max="90"
+                      value={formData.discount}
+                      onChange={(e) => setFormData({...formData, discount: parseInt(e.target.value)})}
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label>Start Date & Time</label>
+                    <input
+                      type="datetime-local"
+                      value={formData.startTime}
+                      onChange={(e) => setFormData({...formData, startTime: e.target.value})}
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label>End Date & Time</label>
+                    <input
+                      type="datetime-local"
+                      value={formData.endTime}
+                      onChange={(e) => setFormData({...formData, endTime: e.target.value})}
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label>Description</label>
+                  <textarea
+                    value={formData.description}
+                    onChange={(e) => setFormData({...formData, description: e.target.value})}
+                    placeholder="Brief description of the flash sale"
+                    rows="3"
+                  />
+                </div>
+
+                <div>
+                  <label>Select Products for Flash Sale</label>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-60 overflow-y-auto border rounded-lg p-3">
+                    {mockProducts.map(product => (
+                      <div key={product.Id} className="flex items-center gap-3 p-2 border rounded hover:bg-gray-50">
+                        <input
+                          type="checkbox"
+                          checked={formData.productIds.includes(product.Id)}
+                          onChange={() => handleProductSelection(product.Id)}
+                          className="rounded"
+                        />
+                        <img 
+                          src={product.image} 
+                          alt={product.name[language]}
+                          className="w-12 h-12 object-cover rounded"
+                        />
+                        <div className="flex-1">
+                          <h4 className="font-medium text-sm">{product.name[language]}</h4>
+                          <p className="text-xs text-gray-600">Rs. {product.originalPrice.toLocaleString()}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <p className="text-sm text-gray-600 mt-2">
+                    Selected: {formData.productIds.length} products
+                  </p>
+                </div>
+
+                <div className="flex gap-3">
+                  <button type="submit" className="admin-btn admin-btn-primary">
+                    <ApperIcon name="Zap" size={16} className="mr-2" />
+                    {editingFlashSale ? 'Update Flash Sale' : 'Create Flash Sale'}
+                  </button>
+                  <button type="button" onClick={() => setShowFlashSaleModal(false)} className="admin-btn admin-btn-secondary">
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      );
+    };
+
+    return (
+      <div className="space-y-6">
+        <div className="flex justify-between items-center">
+          <h3 className="text-xl font-bold">Flash Sale Management</h3>
+          <button 
+            onClick={handleCreateFlashSale}
+            className="admin-btn admin-btn-primary"
+          >
+            <ApperIcon name="Plus" size={16} className="mr-2" />
+            Create Flash Sale
+          </button>
+        </div>
+        
+        <div className="admin-card">
+          <div className="overflow-x-auto">
+            <table className="admin-table">
+              <thead>
+                <tr>
+                  <th>Flash Sale Name</th>
+                  <th>Products</th>
+                  <th>Discount</th>
+                  <th>Start Time</th>
+                  <th>End Time</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {flashSales.map(flashSale => {
+                  const isActive = isFlashSaleActive(flashSale);
+                  const selectedProducts = mockProducts.filter(p => flashSale.productIds.includes(p.Id));
+                  
+                  return (
+                    <tr key={flashSale.Id}>
+                      <td>
+                        <div>
+                          <div className="font-medium">{flashSale.name}</div>
+                          <div className="text-xs text-gray-600">{flashSale.description}</div>
+                        </div>
+                      </td>
+                      <td>
+                        <div className="flex -space-x-2">
+                          {selectedProducts.slice(0, 3).map(product => (
+                            <img
+                              key={product.Id}
+                              src={product.image}
+                              alt={product.name[language]}
+                              className="w-8 h-8 rounded-full border-2 border-white object-cover"
+                            />
+                          ))}
+                          {selectedProducts.length > 3 && (
+                            <div className="w-8 h-8 rounded-full bg-gray-300 border-2 border-white flex items-center justify-center text-xs">
+                              +{selectedProducts.length - 3}
+                            </div>
+                          )}
+                        </div>
+                        <div className="text-xs text-gray-600 mt-1">
+                          {flashSale.productIds.length} products
+                        </div>
+                      </td>
+                      <td>
+                        <span className="discount-badge">{flashSale.discount}%</span>
+                      </td>
+                      <td className="text-sm">
+                        {new Date(flashSale.startTime).toLocaleDateString()}<br/>
+                        <span className="text-xs text-gray-600">
+                          {new Date(flashSale.startTime).toLocaleTimeString()}
+                        </span>
+                      </td>
+                      <td className="text-sm">
+                        {new Date(flashSale.endTime).toLocaleDateString()}<br/>
+                        <span className="text-xs text-gray-600">
+                          {new Date(flashSale.endTime).toLocaleTimeString()}
+                        </span>
+                      </td>
+                      <td>
+                        <div className="flex flex-col gap-1">
+                          <span className={`status-badge ${getStatusColor(flashSale.status)}`}>
+                            {flashSale.status}
+                          </span>
+                          {isActive && (
+                            <span className="status-badge processing text-xs">
+                              <ApperIcon name="Clock" size={10} className="inline mr-1" />
+                              LIVE
+                            </span>
+                          )}
+                        </div>
+                      </td>
+                      <td>
+                        <div className="flex gap-2">
+                          <button 
+                            onClick={() => handleEditFlashSale(flashSale)}
+                            className="admin-btn admin-btn-secondary"
+                            title="Edit Flash Sale"
+                          >
+                            <ApperIcon name="Edit" size={16} />
+                          </button>
+                          <button 
+                            onClick={() => handleToggleStatus(flashSale.Id)}
+                            className={`admin-btn ${flashSale.status === 'active' ? 'admin-btn-danger' : 'admin-btn-primary'}`}
+                            title={flashSale.status === 'active' ? 'Deactivate' : 'Activate'}
+                          >
+                            <ApperIcon name={flashSale.status === 'active' ? 'Pause' : 'Play'} size={16} />
+                          </button>
+                          <button 
+                            onClick={() => handleDeleteFlashSale(flashSale.Id)}
+                            className="admin-btn admin-btn-danger"
+                            title="Delete Flash Sale"
+                          >
+                            <ApperIcon name="Trash2" size={16} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {showFlashSaleModal && <FlashSaleModal />}
       </div>
     );
   };
@@ -3688,7 +4262,8 @@ const Admin = () => {
       case 'products': return <AdminProducts />;
       case 'categories': return <AdminCategories />;
       case 'orders': return <AdminOrders />;
-      case 'discounts': return <AdminDiscounts />;
+case 'discounts': return <AdminDiscounts />;
+      case 'flashsales': return <AdminFlashSales />;
       case 'support': return <AdminSupport />;
       default: return <AdminDashboard />;
     }
@@ -3771,9 +4346,9 @@ function App() {
               className="toast-container"
             />
           </BrowserRouter>
-        </ThemeProvider>
+</ThemeProvider>
       </AppProvider>
-</ErrorBoundary>
+    </ErrorBoundary>
   );
 }
 
