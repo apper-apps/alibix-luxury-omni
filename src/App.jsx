@@ -1,6 +1,6 @@
 import 'react-toastify/dist/ReactToastify.css'
 import React, { useContext, useEffect, useState } from "react";
-import { Link, Route, Router, Routes, useLocation, useNavigate } from "react-router-dom";
+import { Link, Route, BrowserRouter, Routes, useLocation, useNavigate } from "react-router-dom";
 import { ToastContainer, toast } from "react-toastify";
 import ApperIcon from "@/components/ApperIcon";
 
@@ -3128,7 +3128,7 @@ function App() {
   return (
     <ErrorBoundary>
       <AppProvider>
-        <Router>
+<BrowserRouter>
           <Layout>
             <Routes>
               <Route path="/" element={<Home />} />
@@ -3144,7 +3144,7 @@ function App() {
               <Route path="/admin" element={<Admin />} />
             </Routes>
           </Layout>
-          <ToastContainer 
+          <ToastContainer
             position="top-right"
             autoClose={3000}
             hideProgressBar={false}
@@ -3155,8 +3155,8 @@ function App() {
             draggable
             pauseOnHover
             theme="light"
-          />
-        </Router>
+/>
+        </BrowserRouter>
       </AppProvider>
     </ErrorBoundary>
   );
