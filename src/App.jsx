@@ -1,8 +1,8 @@
 import 'react-toastify/dist/ReactToastify.css'
-import React, { useContext, useEffect, useState } from "react";
-import { BrowserRouter, Link, Route, Routes, useLocation, useNavigate } from "react-router-dom";
-import { ToastContainer, toast } from "react-toastify";
-import ApperIcon from "@/components/ApperIcon";
+import React, { useContext, useEffect, useState } from 'react'
+import { BrowserRouter, Link, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
+import { ToastContainer, toast } from 'react-toastify'
+import ApperIcon from '@/components/ApperIcon'
 
 // Error Boundary Component
 class ErrorBoundary extends React.Component {
