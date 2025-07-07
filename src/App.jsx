@@ -1,6 +1,6 @@
 import 'react-toastify/dist/ReactToastify.css'
 import React, { useContext, useEffect, useState } from "react";
-import { Link, Route, BrowserRouter, Routes, useLocation, useNavigate } from "react-router-dom";
+import { BrowserRouter, Link, Route, Routes, useLocation, useNavigate } from "react-router-dom";
 import { ToastContainer, toast } from "react-toastify";
 import ApperIcon from "@/components/ApperIcon";
 
@@ -147,6 +147,57 @@ const mockCategories = [
 // Global State Management
 const AppContext = React.createContext();
 
+// Theme Provider Component
+const ThemeProvider = ({ children }) => {
+  const [theme, setTheme] = useState(() => {
+    const saved = localStorage.getItem('alibix-theme');
+    return saved || 'system';
+  });
+
+  const [resolvedTheme, setResolvedTheme] = useState('light');
+
+  useEffect(() => {
+    const updateTheme = () => {
+      let newTheme = theme;
+      
+      if (theme === 'system') {
+        newTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      }
+      
+      setResolvedTheme(newTheme);
+      
+      // Apply theme to document
+      document.documentElement.classList.remove('light', 'dark');
+      document.documentElement.classList.add(newTheme);
+      document.documentElement.setAttribute('data-theme', newTheme);
+    };
+
+    updateTheme();
+    
+    // Listen for system theme changes
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    const handleChange = () => {
+      if (theme === 'system') {
+        updateTheme();
+      }
+    };
+    
+    mediaQuery.addEventListener('change', handleChange);
+    return () => mediaQuery.removeEventListener('change', handleChange);
+  }, [theme]);
+
+  const changeTheme = (newTheme) => {
+    setTheme(newTheme);
+    localStorage.setItem('alibix-theme', newTheme);
+  };
+
+  return (
+    <div className={`theme-${resolvedTheme} transition-colors duration-300`}>
+      {children}
+    </div>
+  );
+};
+
 const AppProvider = ({ children }) => {
   const [language, setLanguage] = useState('en');
   const [cart, setCart] = useState([]);
@@ -155,6 +206,47 @@ const AppProvider = ({ children }) => {
   const [searchHistory, setSearchHistory] = useState([]);
   const [user, setUser] = useState(null);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [theme, setTheme] = useState(() => {
+    const saved = localStorage.getItem('alibix-theme');
+    return saved || 'system';
+  });
+  const [resolvedTheme, setResolvedTheme] = useState('light');
+
+  // Theme management
+  useEffect(() => {
+    const updateTheme = () => {
+      let newTheme = theme;
+      
+      if (theme === 'system') {
+        newTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      }
+      
+      setResolvedTheme(newTheme);
+      
+      // Apply theme to document
+      document.documentElement.classList.remove('light', 'dark');
+      document.documentElement.classList.add(newTheme);
+      document.documentElement.setAttribute('data-theme', newTheme);
+    };
+
+    updateTheme();
+    
+    // Listen for system theme changes
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    const handleChange = () => {
+      if (theme === 'system') {
+        updateTheme();
+      }
+    };
+    
+    mediaQuery.addEventListener('change', handleChange);
+    return () => mediaQuery.removeEventListener('change', handleChange);
+  }, [theme]);
+
+  const changeTheme = (newTheme) => {
+    setTheme(newTheme);
+    localStorage.setItem('alibix-theme', newTheme);
+  };
 
   const addToCart = (product, quantity = 1, selectedSize = null, selectedColor = null) => {
     const existingItem = cart.find(item => 
@@ -202,7 +294,7 @@ const AppProvider = ({ children }) => {
     setRecentlyViewed([product, ...filtered].slice(0, 10));
   };
 
-  const value = {
+const value = {
     language,
     setLanguage,
     cart,
@@ -219,7 +311,10 @@ const AppProvider = ({ children }) => {
     user,
     setUser,
     isAdmin,
-    setIsAdmin
+    setIsAdmin,
+    theme,
+    changeTheme,
+    resolvedTheme
   };
 
   return (
@@ -239,6 +334,35 @@ const useApp = () => {
 };
 
 // Components
+const ThemeToggle = () => {
+  const { theme, changeTheme, resolvedTheme } = useApp();
+
+  const themes = [
+    { value: 'light', icon: 'Sun', label: 'Light' },
+    { value: 'dark', icon: 'Moon', label: 'Dark' },
+    { value: 'system', icon: 'Monitor', label: 'System' }
+  ];
+
+  return (
+    <div className="flex items-center gap-2 bg-surface-light dark:bg-surface-dark rounded-full p-1 border border-gray-200 dark:border-gray-700">
+      {themes.map((t) => (
+        <button
+          key={t.value}
+          onClick={() => changeTheme(t.value)}
+          className={`p-2 rounded-full transition-all duration-200 ${
+            theme === t.value
+              ? 'bg-primary text-white shadow-md'
+              : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
+          }`}
+          title={t.label}
+        >
+          <ApperIcon name={t.icon} size={16} />
+        </button>
+      ))}
+    </div>
+  );
+};
+
 const LanguageToggle = () => {
   const { language, setLanguage } = useApp();
   
@@ -556,33 +680,34 @@ const MobileNavigation = () => {
 };
 
 const Layout = ({ children }) => {
-  const { language, cart, isAdmin } = useApp();
+  const { language, cart, isAdmin, resolvedTheme } = useApp();
   const navigate = useNavigate();
   const location = useLocation();
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background-light dark:bg-background-dark transition-colors duration-300">
       {/* Header */}
-      <header className="bg-white shadow-sm sticky top-0 z-30 safe-area-top">
+      <header className="bg-surface-light dark:bg-surface-dark shadow-sm dark:shadow-gray-800 sticky top-0 z-30 safe-area-top border-b border-gray-200 dark:border-gray-700">
         <div className="px-4 py-3">
           <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3">
               <ApperIcon name="ShoppingBag" size={28} className="text-primary" />
               <h1 className="text-xl font-bold gradient-text">AliBix</h1>
             </div>
             
             <div className="flex items-center gap-3">
+              <ThemeToggle />
               <LanguageToggle />
               
               {/* Desktop Navigation */}
-              <nav className="hidden md:flex items-center gap-6">
-                <Link to="/" className="text-gray-600 hover:text-primary transition-colors">
+              <nav className="hidden lg:flex items-center gap-6">
+                <Link to="/" className="nav-link">
                   {language === 'en' ? 'Home' : 'ہوم'}
                 </Link>
-                <Link to="/categories" className="text-gray-600 hover:text-primary transition-colors">
+                <Link to="/categories" className="nav-link">
                   {language === 'en' ? 'Categories' : 'کیٹیگریز'}
                 </Link>
-                <Link to="/cart" className="text-gray-600 hover:text-primary transition-colors relative">
+                <Link to="/cart" className="nav-link relative">
                   {language === 'en' ? 'Cart' : 'کارٹ'}
                   {cart.length > 0 && (
                     <div className="cart-badge">
@@ -590,11 +715,11 @@ const Layout = ({ children }) => {
                     </div>
                   )}
                 </Link>
-                <Link to="/profile" className="text-gray-600 hover:text-primary transition-colors">
+                <Link to="/profile" className="nav-link">
                   {language === 'en' ? 'Profile' : 'پروفائل'}
                 </Link>
                 {isAdmin && (
-                  <Link to="/admin" className="text-gray-600 hover:text-primary transition-colors">
+                  <Link to="/admin" className="nav-link">
                     {language === 'en' ? 'Admin' : 'ایڈمن'}
                   </Link>
                 )}
@@ -608,7 +733,7 @@ const Layout = ({ children }) => {
       </header>
       
       {/* Main Content */}
-      <main className="pb-20 md:pb-4">
+      <main className="pb-20 md:pb-4 transition-colors duration-300">
         {children}
       </main>
       
@@ -1577,14 +1702,37 @@ const Profile = () => {
   const navigate = useNavigate();
 
   const handleGoogleLogin = () => {
-    // Mock Google login
-    setUser({
+    // Mock Google login with admin email check
+    const mockUser = {
       name: 'John Doe',
       email: 'alibix07@gmail.com',
       avatar: '/api/placeholder/100/100'
-    });
-    setIsAdmin(true);
-    toast.success(language === 'en' ? 'Logged in successfully!' : 'کامیابی سے لاگ ان ہوگئے!');
+    };
+    
+    setUser(mockUser);
+    
+    // Check if user is admin (specific Gmail address)
+    const isAdminUser = mockUser.email === 'alibix07@gmail.com';
+    setIsAdmin(isAdminUser);
+    
+    if (isAdminUser) {
+      toast.success(language === 'en' ? 'Admin login successful!' : 'ایڈمن لاگ ان کامیاب!');
+    } else {
+      toast.success(language === 'en' ? 'Logged in successfully!' : 'کامیابی سے لاگ ان ہوگئے!');
+    }
+  };
+
+  const handleCustomerLogin = () => {
+    // Mock customer login
+    const mockCustomer = {
+      name: 'Customer User',
+      email: 'customer@example.com',
+      avatar: '/api/placeholder/100/100'
+    };
+    
+    setUser(mockCustomer);
+    setIsAdmin(false);
+    toast.success(language === 'en' ? 'Customer login successful!' : 'کسٹمر لاگ ان کامیاب!');
   };
 
   const handleLogout = () => {
@@ -1605,17 +1753,39 @@ const Profile = () => {
           <h2 className="text-xl font-bold text-gray-600 mb-2">
             {language === 'en' ? 'Sign in to your account' : 'اپنے اکاؤنٹ میں سائن ان کریں'}
           </h2>
-          <p className="text-gray-500 mb-6">
+<p className="text-gray-500 dark:text-gray-400 mb-6">
             {language === 'en' ? 'Access your orders, wishlist, and more' : 'اپنے آرڈرز، خواہش کی فہرست اور مزید تک رسائی حاصل کریں'}
           </p>
-          <button
-            onClick={handleGoogleLogin}
-            className="btn-primary flex items-center gap-2 mx-auto"
-          >
-            <ApperIcon name="Mail" size={20} />
-            {language === 'en' ? 'Sign in with Google' : 'گوگل کے ساتھ سائن ان کریں'}
-          </button>
-        </div>
+          
+          <div className="space-y-4">
+            <button
+              onClick={handleGoogleLogin}
+              className="btn-primary flex items-center gap-2 mx-auto w-full justify-center"
+            >
+              <ApperIcon name="Mail" size={20} />
+              {language === 'en' ? 'Admin Login (Gmail)' : 'ایڈمن لاگ ان (Gmail)'}
+            </button>
+            
+            <div className="text-center text-sm text-gray-500 dark:text-gray-400">
+              {language === 'en' ? 'or' : 'یا'}
+            </div>
+            
+            <button
+              onClick={handleCustomerLogin}
+              className="btn-secondary flex items-center gap-2 mx-auto w-full justify-center"
+            >
+              <ApperIcon name="User" size={20} />
+              {language === 'en' ? 'Customer Login' : 'کسٹمر لاگ ان'}
+            </button>
+            
+            <div className="text-xs text-center text-gray-500 dark:text-gray-400 mt-4 p-3 bg-amber-50 dark:bg-amber-900/20 rounded-lg border border-amber-200 dark:border-amber-800">
+              <ApperIcon name="Info" size={16} className="inline mr-1" />
+              {language === 'en' 
+                ? 'Admin access only for alibix07@gmail.com'
+                : 'صرف alibix07@gmail.com کے لیے ایڈمن رسائی'
+              }
+            </div>
+          </div>
       ) : (
         <div className="space-y-6">
           {/* User Info */}
@@ -3116,8 +3286,6 @@ const tabs = [
           ))}
         </div>
         
-        {/* Tab Content */}
-        {renderTabContent()}
 {/* Tab Content */}
         {renderTabContent()}
       </div>
@@ -3128,35 +3296,38 @@ function App() {
   return (
     <ErrorBoundary>
       <AppProvider>
-<BrowserRouter>
-          <Layout>
-            <Routes>
-              <Route path="/" element={<Home />} />
-              <Route path="/categories" element={<Categories />} />
-              <Route path="/category/:slug" element={<CategoryPage />} />
-              <Route path="/product/:id" element={<ProductDetail />} />
-              <Route path="/search" element={<SearchPage />} />
-              <Route path="/cart" element={<Cart />} />
-              <Route path="/checkout" element={<Checkout />} />
-              <Route path="/orders" element={<Orders />} />
-              <Route path="/profile" element={<Profile />} />
-              <Route path="/wishlist" element={<Wishlist />} />
-              <Route path="/admin" element={<Admin />} />
-            </Routes>
-          </Layout>
-          <ToastContainer
-            position="top-right"
-            autoClose={3000}
-            hideProgressBar={false}
-            newestOnTop={false}
-            closeOnClick
-            rtl={false}
-            pauseOnFocusLoss
-            draggable
-            pauseOnHover
-            theme="light"
-/>
-        </BrowserRouter>
+        <ThemeProvider>
+          <BrowserRouter>
+            <Layout>
+              <Routes>
+                <Route path="/" element={<Home />} />
+                <Route path="/categories" element={<Categories />} />
+                <Route path="/category/:slug" element={<CategoryPage />} />
+                <Route path="/product/:id" element={<ProductDetail />} />
+                <Route path="/search" element={<SearchPage />} />
+                <Route path="/cart" element={<Cart />} />
+                <Route path="/checkout" element={<Checkout />} />
+                <Route path="/orders" element={<Orders />} />
+                <Route path="/profile" element={<Profile />} />
+                <Route path="/wishlist" element={<Wishlist />} />
+                <Route path="/admin" element={<Admin />} />
+              </Routes>
+            </Layout>
+            <ToastContainer
+              position="top-right"
+              autoClose={3000}
+              hideProgressBar={false}
+              newestOnTop={false}
+              closeOnClick
+              rtl={false}
+              pauseOnFocusLoss
+              draggable
+              pauseOnHover
+              theme="colored"
+              className="toast-container"
+            />
+          </BrowserRouter>
+        </ThemeProvider>
       </AppProvider>
     </ErrorBoundary>
   );
