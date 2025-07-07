@@ -57,7 +57,9 @@ const mockProducts = [
     rating: 4.5,
     reviews: 128,
     country: "Pakistan",
-    isFromChina: false
+    isFromChina: false,
+    codEnabled: true,
+    deliveryDays: 3
   },
 {
     Id: 2,
@@ -72,7 +74,9 @@ const mockProducts = [
     rating: 4.7,
     reviews: 89,
     country: "Turkey",
-    isFromChina: false
+    isFromChina: false,
+    codEnabled: true,
+    deliveryDays: 5
   },
 {
     Id: 3,
@@ -87,6 +91,7 @@ const mockProducts = [
     reviews: 45,
     country: "China",
     isFromChina: true,
+    codEnabled: false,
     deliveryDays: 22
   },
 {
@@ -200,17 +205,46 @@ const ThemeProvider = ({ children }) => {
 
 const AppProvider = ({ children }) => {
   const [language, setLanguage] = useState('en');
-  const [cart, setCart] = useState([]);
-  const [wishlist, setWishlist] = useState([]);
-  const [recentlyViewed, setRecentlyViewed] = useState([]);
+  const [cart, setCart] = useState(() => {
+    const saved = localStorage.getItem('alibix-cart');
+    return saved ? JSON.parse(saved) : [];
+  });
+  const [wishlist, setWishlist] = useState(() => {
+    const saved = localStorage.getItem('alibix-wishlist');
+    return saved ? JSON.parse(saved) : [];
+  });
+  const [recentlyViewed, setRecentlyViewed] = useState(() => {
+    const saved = localStorage.getItem('alibix-recently-viewed');
+    return saved ? JSON.parse(saved) : [];
+  });
   const [searchHistory, setSearchHistory] = useState([]);
-  const [user, setUser] = useState(null);
-  const [isAdmin, setIsAdmin] = useState(false);
+  const [user, setUser] = useState(() => {
+    const saved = localStorage.getItem('alibix-user');
+    return saved ? JSON.parse(saved) : null;
+  });
+  const [isAdmin, setIsAdmin] = useState(() => {
+    return localStorage.getItem('alibix-is-admin') === 'true';
+  });
   const [theme, setTheme] = useState(() => {
     const saved = localStorage.getItem('alibix-theme');
     return saved || 'system';
   });
   const [resolvedTheme, setResolvedTheme] = useState('light');
+
+  // Persist cart to localStorage
+  useEffect(() => {
+    localStorage.setItem('alibix-cart', JSON.stringify(cart));
+  }, [cart]);
+
+  // Persist wishlist to localStorage
+  useEffect(() => {
+    localStorage.setItem('alibix-wishlist', JSON.stringify(wishlist));
+  }, [wishlist]);
+
+  // Persist recently viewed to localStorage
+  useEffect(() => {
+    localStorage.setItem('alibix-recently-viewed', JSON.stringify(recentlyViewed));
+  }, [recentlyViewed]);
 
   // Theme management
   useEffect(() => {
@@ -247,7 +281,6 @@ const AppProvider = ({ children }) => {
     setTheme(newTheme);
     localStorage.setItem('alibix-theme', newTheme);
   };
-
   const addToCart = (product, quantity = 1, selectedSize = null, selectedColor = null) => {
     const existingItem = cart.find(item => 
       item.Id === product.Id && 
@@ -1360,21 +1393,40 @@ const Cart = () => {
 const Checkout = () => {
   const { language, cart } = useApp();
   const navigate = useNavigate();
-  const [formData, setFormData] = useState({
+const [formData, setFormData] = useState({
     fullName: '',
     email: '',
-address: '',
+    address: '',
     city: '',
-    paymentMethod: 'cod',
+    paymentMethod: cart.some(item => item.isFromChina) ? 'easypaisa' : 'cod',
     phoneNumber: ''
   });
+
+  // Update payment method if cart contains Chinese products
+  useEffect(() => {
+    if (cart.some(item => item.isFromChina) && formData.paymentMethod === 'cod') {
+      setFormData(prev => ({ ...prev, paymentMethod: 'easypaisa' }));
+    }
+  }, [cart, formData.paymentMethod]);
 
   const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
   const shipping = subtotal > 5000 ? 0 : 300;
   const total = subtotal + shipping;
 
-  const handleSubmit = (e) => {
+const handleSubmit = (e) => {
     e.preventDefault();
+    
+    // Validate COD for Chinese products
+    if (formData.paymentMethod === 'cod' && cart.some(item => item.isFromChina)) {
+      toast.error(language === 'en' 
+        ? 'COD is not available for items from China. Please select another payment method.'
+        : 'چین کے آئٹمز کے لیے COD دستیاب نہیں ہے۔ برائے کرم دوسرا ادائیگی کا طریقہ منتخب کریں۔'
+      );
+      return;
+    }
+    
+    // Clear cart and redirect
+    setCart([]);
     toast.success(language === 'en' ? 'Order placed successfully!' : 'آرڈر کامیابی سے دیا گیا!');
     navigate('/orders');
   };
@@ -1450,10 +1502,33 @@ address: '',
             {language === 'en' ? 'Payment Method (Pakistan Only)' : 'ادائیگی کا طریقہ (صرف پاکستان)'}
           </h3>
           
+          {/* COD Warning for Chinese Products */}
+          {cart.some(item => item.isFromChina) && (
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">
+              <div className="flex items-center gap-2">
+                <ApperIcon name="AlertTriangle" size={16} className="text-yellow-600" />
+                <p className="text-sm text-yellow-800">
+                  {language === 'en' 
+                    ? 'COD is not available for items shipped from China. Please use online payment methods.'
+                    : 'چین سے بھیجے جانے والے آئٹمز کے لیے COD دستیاب نہیں ہے۔ برائے کرم آن لائن ادائیگی کے طریقے استعمال کریں۔'
+                  }
+                </p>
+              </div>
+            </div>
+          )}
+          
           <div className="space-y-3">
             <div 
-              className={`payment-method-pakistan ${formData.paymentMethod === 'cod' ? 'selected' : ''}`}
-              onClick={() => setFormData({...formData, paymentMethod: 'cod'})}
+              className={`payment-method-pakistan ${
+                formData.paymentMethod === 'cod' ? 'selected' : ''
+              } ${
+                cart.some(item => item.isFromChina) ? 'opacity-50 cursor-not-allowed' : ''
+              }`}
+              onClick={() => {
+                if (!cart.some(item => item.isFromChina)) {
+                  setFormData({...formData, paymentMethod: 'cod'});
+                }
+              }}
             >
               <div className="flex items-center gap-3">
                 <input
@@ -1461,6 +1536,7 @@ address: '',
                   name="paymentMethod"
                   value="cod"
                   checked={formData.paymentMethod === 'cod'}
+                  disabled={cart.some(item => item.isFromChina)}
                   readOnly
                 />
                 <div className="flex items-center gap-2">
@@ -1468,9 +1544,14 @@ address: '',
                   <div>
                     <div className="font-semibold">
                       {language === 'en' ? 'Cash on Delivery (COD)' : 'ڈیلیوری پر نقد (COD)'}
+                      {cart.some(item => item.isFromChina) && (
+                        <span className="text-xs text-red-500 ml-2">
+                          ({language === 'en' ? 'Not available for China items' : 'چین کے آئٹمز کے لیے دستیاب نہیں'})
+                        </span>
+                      )}
                     </div>
                     <div className="text-sm text-gray-600">
-                      {language === 'en' ? 'Pay when you receive (Pakistan)' : 'جب آپ کو موصول ہو تو ادائیگی کریں (پاکستان)'}
+                      {language === 'en' ? 'Pay when you receive (Pakistan only)' : 'جب آپ کو موصول ہو تو ادائیگی کریں (صرف پاکستان)'}
                     </div>
                   </div>
                 </div>
