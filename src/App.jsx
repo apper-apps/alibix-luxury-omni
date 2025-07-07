@@ -1691,16 +1691,17 @@ const Orders = () => {
               </div>
             </div>
           </div>
-        ))}
+))}
       </div>
     </div>
   );
 };
 
 const Profile = () => {
-const navigate = useNavigate();
+  const { language, user, setUser, isAdmin, setIsAdmin, wishlist, recentlyViewed } = useApp();
+  const navigate = useNavigate();
 
-  // Check for persistent login on component mount
+  // Load user data from localStorage on component mount
   useEffect(() => {
     const savedUser = localStorage.getItem('alibix-user');
     const savedIsAdmin = localStorage.getItem('alibix-is-admin');
@@ -1711,7 +1712,7 @@ const navigate = useNavigate();
         setUser(userData);
         setIsAdmin(savedIsAdmin === 'true');
       } catch (error) {
-        // Clear corrupted data
+        console.error('Error loading user from localStorage:', error);
         localStorage.removeItem('alibix-user');
         localStorage.removeItem('alibix-is-admin');
       }
@@ -1719,7 +1720,6 @@ const navigate = useNavigate();
   }, [setUser, setIsAdmin]);
 
   const handleGoogleLogin = () => {
-    // Mock Google login with admin email check
     const mockUser = {
       name: 'Admin User',
       email: 'alibix07@gmail.com',
@@ -1728,11 +1728,9 @@ const navigate = useNavigate();
     
     setUser(mockUser);
     
-    // Check if user is admin (specific Gmail address)
     const isAdminUser = mockUser.email === 'alibix07@gmail.com';
     setIsAdmin(isAdminUser);
     
-    // Persist login state
     localStorage.setItem('alibix-user', JSON.stringify(mockUser));
     localStorage.setItem('alibix-is-admin', isAdminUser.toString());
     
@@ -1744,7 +1742,6 @@ const navigate = useNavigate();
   };
 
   const handleCustomerLogin = () => {
-    // Mock customer login
     const mockCustomer = {
       name: 'Customer User',
       email: 'customer@example.com',
@@ -1754,7 +1751,6 @@ const navigate = useNavigate();
     setUser(mockCustomer);
     setIsAdmin(false);
     
-    // Persist login state
     localStorage.setItem('alibix-user', JSON.stringify(mockCustomer));
     localStorage.setItem('alibix-is-admin', 'false');
     
@@ -1765,7 +1761,6 @@ const navigate = useNavigate();
     setUser(null);
     setIsAdmin(false);
     
-    // Clear persistent login
     localStorage.removeItem('alibix-user');
     localStorage.removeItem('alibix-is-admin');
     
@@ -1784,7 +1779,7 @@ const navigate = useNavigate();
           <h2 className="text-xl font-bold text-gray-600 mb-2">
             {language === 'en' ? 'Sign in to your account' : 'اپنے اکاؤنٹ میں سائن ان کریں'}
           </h2>
-<p className="text-gray-500 dark:text-gray-400 mb-6">
+          <p className="text-gray-500 dark:text-gray-400 mb-6">
             {language === 'en' ? 'Access your orders, wishlist, and more' : 'اپنے آرڈرز، خواہش کی فہرست اور مزید تک رسائی حاصل کریں'}
           </p>
           
@@ -1797,10 +1792,6 @@ const navigate = useNavigate();
               {language === 'en' ? 'Admin Login (Gmail)' : 'ایڈمن لاگ ان (Gmail)'}
             </button>
             
-            <div className="text-center text-sm text-gray-500 dark:text-gray-400">
-              {language === 'en' ? 'or' : 'یا'}
-            </div>
-            
             <button
               onClick={handleCustomerLogin}
               className="btn-secondary flex items-center gap-2 mx-auto w-full justify-center"
@@ -1808,16 +1799,1599 @@ const navigate = useNavigate();
               <ApperIcon name="User" size={20} />
               {language === 'en' ? 'Customer Login' : 'کسٹمر لاگ ان'}
             </button>
+          </div>
+        </div>
+      ) : (
+        <div className="space-y-6">
+          <div className="admin-card">
+            <div className="flex items-center gap-4 mb-4">
+              <div className="relative">
+                <img
+                  src={user.avatar}
+                  alt={user.name}
+                  className="w-20 h-20 rounded-full object-cover border-4 border-primary shadow-lg ring-4 ring-primary/20"
+                  style={{
+                    background: 'linear-gradient(135deg, #CFA75F 0%, #FFD700 100%)',
+                    padding: '2px'
+                  }}
+                />
+                <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-green-500 border-2 border-white rounded-full flex items-center justify-center">
+                  <ApperIcon name="Check" size={12} className="text-white" />
+                </div>
+              </div>
+              <div>
+                <h3 className="font-semibold text-lg">{user.name}</h3>
+                <p className="text-gray-600 dark:text-gray-400">{user.email}</p>
+                {isAdmin && (
+                  <span className="status-badge processing">
+                    {language === 'en' ? 'Admin' : 'ایڈمن'}
+                  </span>
+                )}
+              </div>
+            </div>
             
-<div className="text-xs text-center text-gray-500 dark:text-gray-400 mt-4 p-3 bg-amber-50 dark:bg-amber-900/20 rounded-lg border border-amber-200 dark:border-amber-800">
-              <ApperIcon name="Info" size={16} className="inline mr-1" />
-              {language === 'en' 
-                ? 'Admin access only for alibix07@gmail.com'
-                : 'صرف alibix07@gmail.com کے لیے ایڈمن رسائی'
-              }
+            <button
+              onClick={handleLogout}
+              className="admin-btn admin-btn-secondary"
+            >
+              {language === 'en' ? 'Logout' : 'لاگ آؤٹ'}
+            </button>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="admin-card text-center">
+              <div className="text-2xl font-bold text-primary mb-2">
+                {wishlist.length}
+              </div>
+              <div className="text-sm text-gray-600">
+                {language === 'en' ? 'Wishlist Items' : 'خواہش کی فہرست'}
+              </div>
+            </div>
+            
+            <div className="admin-card text-center">
+              <div className="text-2xl font-bold text-primary mb-2">
+                {recentlyViewed.length}
+              </div>
+              <div className="text-sm text-gray-600">
+                {language === 'en' ? 'Recently Viewed' : 'حال ہی میں دیکھے گئے'}
+              </div>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <button
+              onClick={() => navigate('/orders')}
+              className="w-full admin-card p-4 flex items-center justify-between hover:bg-gray-50 transition-colors"
+            >
+              <div className="flex items-center gap-3">
+                <ApperIcon name="Package" size={20} />
+                <span>{language === 'en' ? 'My Orders' : 'میرے آرڈرز'}</span>
+              </div>
+              <ApperIcon name="ChevronRight" size={20} />
+            </button>
+            
+            <button
+              onClick={() => navigate('/wishlist')}
+              className="w-full admin-card p-4 flex items-center justify-between hover:bg-gray-50 transition-colors"
+            >
+              <div className="flex items-center gap-3">
+                <ApperIcon name="Heart" size={20} />
+                <span>{language === 'en' ? 'Wishlist' : 'خواہش کی فہرست'}</span>
+              </div>
+              <ApperIcon name="ChevronRight" size={20} />
+            </button>
+            
+            {isAdmin && (
+              <button
+                onClick={() => navigate('/admin')}
+                className="w-full admin-card p-4 flex items-center justify-between hover:bg-gray-50 transition-colors"
+              >
+                <div className="flex items-center gap-3">
+                  <ApperIcon name="Settings" size={20} />
+                  <span>{language === 'en' ? 'Admin Panel' : 'ایڈمن پینل'}</span>
+                </div>
+                <ApperIcon name="ChevronRight" size={20} />
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+const Wishlist = () => {
+  const { language, wishlist, removeFromWishlist, addToCart } = useApp();
+  const navigate = useNavigate();
+
+  if (wishlist.length === 0) {
+    return (
+      <div className="p-4 text-center py-12">
+        <ApperIcon name="Heart" size={48} className="text-gray-400 mx-auto mb-4" />
+        <h2 className="text-2xl font-bold text-gray-600 mb-2">
+          {language === 'en' ? 'Your wishlist is empty' : 'آپ کی خواہش کی فہرست خالی ہے'}
+        </h2>
+        <p className="text-gray-500 mb-6">
+          {language === 'en' ? 'Save items you love for later' : 'بعد کے لیے پسندیدہ آئٹمز محفوظ کریں'}
+        </p>
+        <button
+          onClick={() => navigate('/')}
+          className="btn-primary"
+        >
+          {language === 'en' ? 'Start Shopping' : 'خریداری شروع کریں'}
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="p-4">
+      <h1 className="text-2xl font-bold mb-6">
+        {language === 'en' ? 'My Wishlist' : 'میری خواہش کی فہرست'}
+      </h1>
+      
+      <div className="product-grid">
+        {wishlist.map(product => (
+          <div key={product.Id} className="product-card">
+            <div className="relative">
+              <img
+                src={product.image}
+                alt={product.name[language]}
+                className="w-full aspect-square object-cover rounded-t-xl"
+              />
+              
+              <button
+                onClick={() => removeFromWishlist(product.Id)}
+                className="absolute top-2 right-2 p-2 bg-white rounded-full shadow-md hover:scale-110 transition-transform"
+              >
+                <ApperIcon name="X" size={16} className="text-gray-400" />
+              </button>
+            </div>
+            
+            <div className="p-4">
+              <h3 className="font-semibold mb-2 text-sm text-bilingual">
+                {product.name[language]}
+              </h3>
+              
+              <div className="flex items-center gap-2 mb-3">
+                <span className="price-discount">Rs. {product.price.toLocaleString()}</span>
+                {product.originalPrice > product.price && (
+                  <span className="price-original">Rs. {product.originalPrice.toLocaleString()}</span>
+                )}
+              </div>
+              
+              <div className="flex gap-2">
+                <button
+                  onClick={() => addToCart(product)}
+                  disabled={!product.inStock}
+                  className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-all ${
+                    product.inStock
+                      ? 'bg-primary text-white hover:bg-orange-600'
+                      : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                  }`}
+                >
+                  {product.inStock 
+                    ? (language === 'en' ? 'Add to Cart' : 'کارٹ میں شامل کریں')
+                    : (language === 'en' ? 'Out of Stock' : 'ختم')
+                  }
+                </button>
+                
+                <button
+                  onClick={() => navigate(`/product/${product.Id}`)}
+                  className="p-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                >
+                  <ApperIcon name="Eye" size={16} />
+                </button>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+const SearchPage = () => {
+  const { language } = useApp();
+  const location = useLocation();
+  const searchQuery = new URLSearchParams(location.search).get('q') || '';
+  
+  const filteredProducts = mockProducts.filter(product =>
+    product.name[language].toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  return (
+    <div className="p-4">
+      <h1 className="text-2xl font-bold mb-6">
+        {language === 'en' ? `Search Results for "${searchQuery}"` : `"${searchQuery}" کے نتائج`}
+      </h1>
+      
+      {filteredProducts.length === 0 ? (
+        <div className="text-center py-12">
+          <ApperIcon name="Search" size={48} className="text-gray-400 mx-auto mb-4" />
+          <h2 className="text-xl font-bold text-gray-600 mb-2">
+            {language === 'en' ? 'No products found' : 'کوئی پروڈکٹ نہیں ملا'}
+          </h2>
+          <p className="text-gray-500">
+            {language === 'en' ? 'Try adjusting your search terms' : 'اپنی تلاش کی شرائط کو بہتر بنانے کی کوشش کریں'}
+          </p>
+        </div>
+      ) : (
+        <div className="product-grid">
+          {filteredProducts.map(product => (
+            <ProductCard key={product.Id} product={product} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
+const Admin = () => {
+  const { language, user, isAdmin } = useApp();
+  const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState('dashboard');
+
+  if (!user || !isAdmin) {
+    return (
+      <div className="p-4 text-center py-12">
+        <ApperIcon name="Lock" size={48} className="text-gray-400 mx-auto mb-4" />
+        <h2 className="text-2xl font-bold text-gray-600 mb-2">
+          {language === 'en' ? 'Access Denied' : 'رسائی مسترد'}
+        </h2>
+        <p className="text-gray-500 mb-6">
+          {language === 'en' ? 'You need admin privileges to access this page' : 'اس صفحے تک رسائی کے لیے آپ کو ایڈمن کی اجازت درکار ہے'}
+        </p>
+        <button
+          onClick={() => navigate('/profile')}
+          className="btn-primary"
+        >
+          {language === 'en' ? 'Go to Profile' : 'پروفائل پر جائیں'}
+        </button>
+      </div>
+    );
+  }
+
+  const tabs = [
+    { id: 'dashboard', label: language === 'en' ? 'Dashboard' : 'ڈیش بورڈ', icon: 'BarChart3' },
+    { id: 'products', label: language === 'en' ? 'Products' : 'پروڈکٹس', icon: 'Package' },
+    { id: 'categories', label: language === 'en' ? 'Categories' : 'کیٹیگریز', icon: 'Grid3x3' },
+    { id: 'orders', label: language === 'en' ? 'Orders' : 'آرڈرز', icon: 'ShoppingCart' },
+    { id: 'discounts', label: language === 'en' ? 'Discounts' : 'ڈسکاؤنٹس', icon: 'Percent' },
+    { id: 'support', label: language === 'en' ? 'Support' : 'سپورٹ', icon: 'MessageCircle' }
+  ];
+
+  // Modal state management
+  const [showProductModal, setShowProductModal] = useState(false);
+  const [showCategoryModal, setShowCategoryModal] = useState(false);
+  const [showOrderModal, setShowOrderModal] = useState(false);
+  const [showSupportModal, setShowSupportModal] = useState(false);
+  const [editingItem, setEditingItem] = useState(null);
+
+  // Mock support messages
+  const [supportMessages] = useState([
+    {
+      Id: 1,
+      customerName: 'Ahmed Ali',
+      email: 'ahmed@example.com',
+      subject: 'Delivery Issue',
+      message: 'My order has not arrived yet. It has been 5 days.',
+      date: '2024-01-20',
+      status: 'pending',
+      priority: 'high'
+    },
+    {
+      Id: 2,
+      customerName: 'Fatima Khan',
+      email: 'fatima@example.com',
+      subject: 'Product Quality',
+      message: 'The product I received is damaged. Please help.',
+      date: '2024-01-19',
+      status: 'responded',
+      priority: 'medium'
+    },
+    {
+      Id: 3,
+      customerName: 'Hassan Sheikh',
+      email: 'hassan@example.com',
+      subject: 'Return Request',
+      message: 'I want to return my purchase. Size does not fit.',
+      date: '2024-01-18',
+      status: 'resolved',
+      priority: 'low'
+    }
+  ]);
+
+  const AdminDashboard = () => (
+    <div className="space-y-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="admin-card">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-600">Total Products</p>
+              <p className="text-2xl font-bold text-primary">{mockProducts.length}</p>
+            </div>
+            <ApperIcon name="Package" size={32} className="text-primary" />
+          </div>
+        </div>
+        
+        <div className="admin-card">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-600">Total Orders</p>
+              <p className="text-2xl font-bold text-primary">156</p>
+            </div>
+            <ApperIcon name="ShoppingCart" size={32} className="text-primary" />
+          </div>
+        </div>
+        
+        <div className="admin-card">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-600">Revenue</p>
+              <p className="text-2xl font-bold text-primary">Rs. 1,24,500</p>
+            </div>
+            <ApperIcon name="DollarSign" size={32} className="text-primary" />
+          </div>
+        </div>
+        
+        <div className="admin-card">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-600">Support Messages</p>
+              <p className="text-2xl font-bold text-primary">{supportMessages.filter(m => m.status === 'pending').length}</p>
+            </div>
+            <ApperIcon name="MessageCircle" size={32} className="text-primary" />
+          </div>
+        </div>
+      </div>
+      
+      <div className="admin-card">
+        <h3 className="font-semibold mb-4">Recent Orders</h3>
+        <div className="overflow-x-auto">
+          <table className="admin-table">
+            <thead>
+              <tr>
+                <th>Order ID</th>
+                <th>Customer</th>
+                <th>Status</th>
+                <th>Total</th>
+                <th>Date</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>ALB-2024-001</td>
+                <td>John Doe</td>
+                <td><span className="status-badge delivered">Delivered</span></td>
+                <td>Rs. 3,200</td>
+                <td>2024-01-15</td>
+              </tr>
+              <tr>
+                <td>ALB-2024-002</td>
+                <td>Jane Smith</td>
+                <td><span className="status-badge shipped">Shipped</span></td>
+                <td>Rs. 1,800</td>
+                <td>2024-01-14</td>
+              </tr>
+              <tr>
+                <td>ALB-2024-003</td>
+                <td>Mike Johnson</td>
+                <td><span className="status-badge processing">Processing</span></td>
+                <td>Rs. 5,400</td>
+                <td>2024-01-13</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+
+  const ProductModal = () => {
+    const [formData, setFormData] = useState({
+      name: { en: '', ur: '' },
+      price: '',
+      originalPrice: '',
+      discount: '',
+      category: '',
+      image: '/api/placeholder/300/300',
+      inStock: true,
+      codEnabled: true,
+      sizes: [],
+      colors: [],
+      country: 'Pakistan',
+      isFromChina: false,
+      deliveryDays: 3
+    });
+
+    const handleSubmit = (e) => {
+      e.preventDefault();
+      const action = editingItem ? 'updated' : 'added';
+      toast.success(`Product ${action} successfully!`);
+      setShowProductModal(false);
+      setEditingItem(null);
+    };
+
+    const handleDiscountChange = (value) => {
+      const discount = parseInt(value) || 0;
+      const originalPrice = parseFloat(formData.originalPrice) || 0;
+      const newPrice = originalPrice * (1 - discount / 100);
+      setFormData({
+        ...formData,
+        discount,
+        price: newPrice.toFixed(0)
+      });
+    };
+
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+          <div className="p-6">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-xl font-bold">
+                {editingItem ? 'Edit Product' : 'Add Product'}
+              </h2>
+              <button onClick={() => setShowProductModal(false)}>
+                <ApperIcon name="X" size={24} />
+              </button>
+            </div>
+
+            <form onSubmit={handleSubmit} className="admin-form">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label>Product Name (English)</label>
+                  <input
+                    type="text"
+                    value={formData.name.en}
+                    onChange={(e) => setFormData({...formData, name: {...formData.name, en: e.target.value}})}
+                    required
+                  />
+                </div>
+                
+                <div>
+                  <label>Product Name (Urdu)</label>
+                  <input
+                    type="text"
+                    value={formData.name.ur}
+                    onChange={(e) => setFormData({...formData, name: {...formData.name, ur: e.target.value}})}
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label>Original Price (Rs.)</label>
+                  <input
+                    type="number"
+                    value={formData.originalPrice}
+                    onChange={(e) => setFormData({...formData, originalPrice: e.target.value})}
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label>Discount (%)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    max="100"
+                    value={formData.discount}
+                    onChange={(e) => handleDiscountChange(e.target.value)}
+                    placeholder="0"
+                  />
+                </div>
+
+                <div>
+                  <label>Final Price (Rs.)</label>
+                  <input
+                    type="number"
+                    value={formData.price}
+                    onChange={(e) => setFormData({...formData, price: e.target.value})}
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label>Category</label>
+                  <select
+                    value={formData.category}
+                    onChange={(e) => setFormData({...formData, category: e.target.value})}
+                    required
+                  >
+                    <option value="">Select Category</option>
+                    {mockCategories.map(cat => (
+                      <option key={cat.Id} value={cat.slug}>{cat.name.en}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label>Country</label>
+                  <select
+                    value={formData.country}
+                    onChange={(e) => {
+                      const isFromChina = e.target.value === 'China';
+                      setFormData({
+                        ...formData, 
+                        country: e.target.value,
+                        isFromChina,
+                        deliveryDays: isFromChina ? 22 : 3
+                      });
+                    }}
+                  >
+                    <option value="Pakistan">Pakistan</option>
+                    <option value="Turkey">Turkey</option>
+                    <option value="China">China</option>
+                    <option value="USA">USA</option>
+                    <option value="Germany">Germany</option>
+                    <option value="Korea">Korea</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label>Delivery Days</label>
+                  <input
+                    type="number"
+                    value={formData.deliveryDays}
+                    onChange={(e) => setFormData({...formData, deliveryDays: parseInt(e.target.value)})}
+                    min="1"
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center gap-4">
+                <label className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={formData.inStock}
+                    onChange={(e) => setFormData({...formData, inStock: e.target.checked})}
+                  />
+                  <span>In Stock</span>
+                </label>
+
+                <label className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={formData.codEnabled}
+                    onChange={(e) => setFormData({...formData, codEnabled: e.target.checked})}
+                  />
+                  <span>COD Enabled</span>
+                </label>
+              </div>
+
+              <div className="flex gap-3">
+                <button type="submit" className="admin-btn admin-btn-primary">
+                  {editingItem ? 'Update Product' : 'Add Product'}
+                </button>
+                <button type="button" onClick={() => setShowProductModal(false)} className="admin-btn admin-btn-secondary">
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const CategoryModal = () => {
+    const [formData, setFormData] = useState({
+      name: { en: '', ur: '' },
+      icon: '📦',
+      slug: '',
+      image: '/api/placeholder/300/300'
+    });
+
+    const handleSubmit = (e) => {
+      e.preventDefault();
+      const action = editingItem ? 'updated' : 'added';
+      toast.success(`Category ${action} successfully!`);
+      setShowCategoryModal(false);
+      setEditingItem(null);
+    };
+
+    const generateSlug = (name) => {
+      return name.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+    };
+
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="bg-white rounded-lg max-w-md w-full">
+          <div className="p-6">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-xl font-bold">
+                {editingItem ? 'Edit Category' : 'Add Category'}
+              </h2>
+              <button onClick={() => setShowCategoryModal(false)}>
+                <ApperIcon name="X" size={24} />
+              </button>
+            </div>
+
+            <form onSubmit={handleSubmit} className="admin-form">
+              <div>
+                <label>Category Name (English)</label>
+                <input
+                  type="text"
+                  value={formData.name.en}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    setFormData({
+                      ...formData, 
+                      name: {...formData.name, en: value},
+                      slug: generateSlug(value)
+                    });
+                  }}
+                  required
+                />
+              </div>
+              
+              <div>
+                <label>Category Name (Urdu)</label>
+                <input
+                  type="text"
+                  value={formData.name.ur}
+                  onChange={(e) => setFormData({...formData, name: {...formData.name, ur: e.target.value}})}
+                  required
+                />
+              </div>
+
+              <div>
+                <label>Icon/Emoji</label>
+                <input
+                  type="text"
+                  value={formData.icon}
+                  onChange={(e) => setFormData({...formData, icon: e.target.value})}
+                  placeholder="📦"
+                  maxLength="10"
+                  required
+                />
+              </div>
+
+              <div>
+                <label>Slug (Auto-generated)</label>
+                <input
+                  type="text"
+                  value={formData.slug}
+                  onChange={(e) => setFormData({...formData, slug: e.target.value})}
+                  required
+                />
+              </div>
+
+              <div>
+                <label>Category Image URL</label>
+                <input
+                  type="url"
+                  value={formData.image}
+                  onChange={(e) => setFormData({...formData, image: e.target.value})}
+                  placeholder="/api/placeholder/300/300"
+                />
+              </div>
+
+              <div className="flex gap-3">
+                <button type="submit" className="admin-btn admin-btn-primary">
+                  {editingItem ? 'Update Category' : 'Add Category'}
+                </button>
+                <button type="button" onClick={() => setShowCategoryModal(false)} className="admin-btn admin-btn-secondary">
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const OrderModal = () => {
+    const [orderData, setOrderData] = useState({
+      Id: editingItem?.Id || 1,
+      orderNumber: editingItem?.orderNumber || 'ALB-2024-001',
+      customerName: editingItem?.customerName || 'Customer Name',
+      status: editingItem?.status || 'processing',
+      total: editingItem?.total || 0
+    });
+
+    const allowedStatuses = [
+      { value: 'processing', label: 'Processing' },
+      { value: 'packed', label: 'Packed' },
+      { value: 'shipped', label: 'Shipped' },
+      { value: 'delivered', label: 'Delivered' }
+    ];
+
+    const handleSubmit = (e) => {
+      e.preventDefault();
+      toast.success(`Order status updated to ${orderData.status}!`);
+      setShowOrderModal(false);
+      setEditingItem(null);
+    };
+
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="bg-white rounded-lg max-w-md w-full">
+          <div className="p-6">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-xl font-bold">Update Order Status</h2>
+              <button onClick={() => setShowOrderModal(false)}>
+                <ApperIcon name="X" size={24} />
+              </button>
+            </div>
+
+            <form onSubmit={handleSubmit} className="admin-form">
+              <div>
+                <label>Order Number</label>
+                <input
+                  type="text"
+                  value={orderData.orderNumber}
+                  readOnly
+                  className="bg-gray-100"
+                />
+              </div>
+
+              <div>
+                <label>Customer</label>
+                <input
+                  type="text"
+                  value={orderData.customerName}
+                  readOnly
+                  className="bg-gray-100"
+                />
+              </div>
+
+              <div>
+                <label>Order Status</label>
+                <select
+                  value={orderData.status}
+                  onChange={(e) => setOrderData({...orderData, status: e.target.value})}
+                  required
+                >
+                  {allowedStatuses.map(status => (
+                    <option key={status.value} value={status.value}>
+                      {status.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                <p className="text-sm text-yellow-800">
+                  <strong>Note:</strong> Order cancellation and deletion are not available for admin users. 
+                  Only status updates are permitted.
+                </p>
+              </div>
+
+              <div className="flex gap-3">
+                <button type="submit" className="admin-btn admin-btn-primary">
+                  Update Status
+                </button>
+                <button type="button" onClick={() => setShowOrderModal(false)} className="admin-btn admin-btn-secondary">
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const SupportModal = () => {
+    const [response, setResponse] = useState('');
+    const message = editingItem;
+
+    const handleSubmit = (e) => {
+      e.preventDefault();
+      toast.success('Response sent successfully!');
+      setShowSupportModal(false);
+      setEditingItem(null);
+      setResponse('');
+    };
+
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+          <div className="p-6">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-xl font-bold">Support Message</h2>
+              <button onClick={() => setShowSupportModal(false)}>
+                <ApperIcon name="X" size={24} />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div className="bg-gray-50 rounded-lg p-4">
+                <div className="flex justify-between items-start mb-2">
+                  <div>
+                    <h3 className="font-semibold">{message?.customerName}</h3>
+                    <p className="text-sm text-gray-600">{message?.email}</p>
+                  </div>
+                  <span className={`status-badge ${message?.priority === 'high' ? 'cancelled' : message?.priority === 'medium' ? 'processing' : 'shipped'}`}>
+                    {message?.priority} priority
+                  </span>
+                </div>
+                <h4 className="font-medium mb-2">{message?.subject}</h4>
+                <p className="text-gray-700">{message?.message}</p>
+                <p className="text-xs text-gray-500 mt-2">{message?.date}</p>
+              </div>
+
+              <form onSubmit={handleSubmit} className="admin-form">
+                <div>
+                  <label>Your Response</label>
+                  <textarea
+                    value={response}
+                    onChange={(e) => setResponse(e.target.value)}
+                    placeholder="Type your response to the customer..."
+                    required
+                    rows="5"
+                  />
+                </div>
+
+                <div className="flex gap-3">
+                  <button type="submit" className="admin-btn admin-btn-primary">
+                    Send Response
+                  </button>
+                  <button type="button" onClick={() => setShowSupportModal(false)} className="admin-btn admin-btn-secondary">
+                    Cancel
+                  </button>
+                </div>
+              </form>
             </div>
           </div>
         </div>
+      </div>
+    );
+  };
+
+  const AdminProducts = () => {
+    const handleEdit = (product) => {
+      setEditingItem(product);
+      setShowProductModal(true);
+    };
+
+    const handleDelete = (product) => {
+      if (confirm(`Are you sure you want to delete ${product.name[language]}?`)) {
+        toast.success('Product deleted successfully!');
+      }
+    };
+
+    return (
+      <div className="space-y-6">
+        <div className="flex justify-between items-center">
+          <h3 className="text-xl font-bold">Product Management</h3>
+          <button 
+            onClick={() => {
+              setEditingItem(null);
+              setShowProductModal(true);
+            }}
+            className="admin-btn admin-btn-primary"
+          >
+            <ApperIcon name="Plus" size={16} className="mr-2" />
+            Add Product
+          </button>
+        </div>
+        
+        <div className="admin-card">
+          <div className="overflow-x-auto">
+            <table className="admin-table">
+              <thead>
+                <tr>
+                  <th>Image</th>
+                  <th>Name</th>
+                  <th>Price</th>
+                  <th>Discount</th>
+                  <th>Stock</th>
+                  <th>COD</th>
+                  <th>Category</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {mockProducts.map(product => (
+                  <tr key={product.Id}>
+                    <td>
+                      <img 
+                        src={product.image} 
+                        alt={product.name[language]}
+                        className="w-12 h-12 object-cover rounded"
+                      />
+                    </td>
+                    <td className="font-medium">{product.name[language]}</td>
+                    <td>Rs. {product.price.toLocaleString()}</td>
+                    <td>
+                      {product.discount > 0 ? (
+                        <span className="discount-badge">{product.discount}%</span>
+                      ) : (
+                        <span className="text-gray-400">No discount</span>
+                      )}
+                    </td>
+                    <td>
+                      <span className={`status-badge ${product.inStock ? 'processing' : 'cancelled'}`}>
+                        {product.inStock ? 'In Stock' : 'Out of Stock'}
+                      </span>
+                    </td>
+                    <td>
+                      <span className={`status-badge ${product.codEnabled !== false ? 'shipped' : 'cancelled'}`}>
+                        {product.codEnabled !== false ? 'Enabled' : 'Disabled'}
+                      </span>
+                    </td>
+                    <td className="capitalize">{product.category.replace('-', ' ')}</td>
+                    <td>
+                      <div className="flex gap-2">
+                        <button 
+                          onClick={() => handleEdit(product)}
+                          className="admin-btn admin-btn-secondary"
+                          title="Edit Product"
+                        >
+                          <ApperIcon name="Edit" size={16} />
+                        </button>
+                        <button 
+                          onClick={() => handleDelete(product)}
+                          className="admin-btn admin-btn-danger"
+                          title="Delete Product"
+                        >
+                          <ApperIcon name="Trash2" size={16} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {showProductModal && <ProductModal />}
+      </div>
+    );
+  };
+
+  const AdminCategories = () => {
+    const handleEdit = (category) => {
+      setEditingItem(category);
+      setShowCategoryModal(true);
+    };
+
+    const handleDelete = (category) => {
+      if (confirm(`Are you sure you want to delete ${category.name[language]}?`)) {
+        toast.success('Category deleted successfully!');
+      }
+    };
+
+    return (
+      <div className="space-y-6">
+        <div className="flex justify-between items-center">
+          <h3 className="text-xl font-bold">Category Management</h3>
+          <button 
+            onClick={() => {
+              setEditingItem(null);
+              setShowCategoryModal(true);
+            }}
+            className="admin-btn admin-btn-primary"
+          >
+            <ApperIcon name="Plus" size={16} className="mr-2" />
+            Add Category
+          </button>
+        </div>
+        
+        <div className="admin-card">
+          <div className="overflow-x-auto">
+            <table className="admin-table">
+              <thead>
+                <tr>
+                  <th>Icon</th>
+                  <th>Image</th>
+                  <th>Name (English)</th>
+                  <th>Name (Urdu)</th>
+                  <th>Slug</th>
+                  <th>Products</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {mockCategories.map(category => {
+                  const productCount = mockProducts.filter(p => p.category === category.slug).length;
+                  return (
+                    <tr key={category.Id}>
+                      <td className="text-2xl">{category.icon}</td>
+                      <td>
+                        <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center">
+                          <ApperIcon name="Image" size={20} className="text-gray-400" />
+                        </div>
+                      </td>
+                      <td className="font-medium">{category.name.en}</td>
+                      <td>{category.name.ur}</td>
+                      <td className="text-sm text-gray-600">{category.slug}</td>
+                      <td>
+                        <span className="status-badge processing">{productCount} products</span>
+                      </td>
+                      <td>
+                        <div className="flex gap-2">
+                          <button 
+                            onClick={() => handleEdit(category)}
+                            className="admin-btn admin-btn-secondary"
+                            title="Edit Category"
+                          >
+                            <ApperIcon name="Edit" size={16} />
+                          </button>
+                          <button 
+                            onClick={() => handleDelete(category)}
+                            className="admin-btn admin-btn-danger"
+                            title="Delete Category"
+                          >
+                            <ApperIcon name="Trash2" size={16} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {showCategoryModal && <CategoryModal />}
+      </div>
+    );
+  };
+
+  const AdminOrders = () => {
+    const mockOrdersData = [
+      { Id: 1, orderNumber: 'ALB-2024-001', customerName: 'Ahmed Ali', items: 3, total: 3200, status: 'processing', date: '2024-01-20', isTestOrder: false },
+      { Id: 2, orderNumber: 'ALB-2024-002', customerName: 'Fatima Khan', items: 2, total: 1800, status: 'packed', date: '2024-01-19', isTestOrder: false },
+      { Id: 3, orderNumber: 'ALB-2024-003', customerName: 'Hassan Sheikh', items: 1, total: 5400, status: 'shipped', date: '2024-01-18', isTestOrder: false },
+      { Id: 4, orderNumber: 'ALB-2024-004', customerName: 'Test Customer', items: 4, total: 2100, status: 'delivered', date: '2024-01-17', isTestOrder: true },
+      { Id: 5, orderNumber: 'ALB-2024-005', customerName: 'Omar Farooq', items: 2, total: 3800, status: 'processing', date: '2024-01-16', isTestOrder: false },
+      { Id: 6, orderNumber: 'ALB-2024-006', customerName: 'Fake User', items: 1, total: 100, status: 'processing', date: '2024-01-15', isTestOrder: true },
+      { Id: 7, orderNumber: 'ALB-2024-007', customerName: 'Demo Account', items: 3, total: 500, status: 'packed', date: '2024-01-14', isTestOrder: true }
+    ];
+
+    const handleViewOrder = (order) => {
+      toast.info(`Viewing order ${order.orderNumber}`);
+    };
+
+    const handleUpdateStatus = (order) => {
+      setEditingItem(order);
+      setShowOrderModal(true);
+    };
+
+    const handleRemoveOrder = (order) => {
+      if (confirm(`Are you sure you want to remove order ${order.orderNumber}? This action cannot be undone.`)) {
+        toast.success(`Order ${order.orderNumber} removed successfully!`);
+      }
+    };
+
+    const getStatusColor = (status) => {
+      switch (status) {
+        case 'processing': return 'processing';
+        case 'packed': return 'pending';
+        case 'shipped': return 'shipped';
+        case 'delivered': return 'delivered';
+        default: return 'processing';
+      }
+    };
+
+    return (
+      <div className="space-y-6">
+        <div className="flex justify-between items-center">
+          <h3 className="text-xl font-bold">Order Management</h3>
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg px-3 py-2">
+            <p className="text-sm text-yellow-800">
+              <ApperIcon name="Info" size={16} className="inline mr-1" />
+              No cancel/delete options for admin
+            </p>
+          </div>
+        </div>
+        
+        <div className="admin-card">
+          <div className="overflow-x-auto">
+            <table className="admin-table">
+              <thead>
+                <tr>
+                  <th>Order ID</th>
+                  <th>Customer</th>
+                  <th>Items</th>
+                  <th>Total</th>
+                  <th>Status</th>
+                  <th>Type</th>
+                  <th>Date</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {mockOrdersData.map(order => (
+                  <tr key={order.Id} className={order.isTestOrder ? 'bg-orange-50 dark:bg-orange-900/20' : ''}>
+                    <td className="font-medium">{order.orderNumber}</td>
+                    <td>
+                      <div className="flex items-center gap-2">
+                        {order.customerName}
+                        {order.isTestOrder && (
+                          <ApperIcon name="TestTube" size={14} className="text-orange-500" title="Test Order" />
+                        )}
+                      </div>
+                    </td>
+                    <td>{order.items}</td>
+                    <td>Rs. {order.total.toLocaleString()}</td>
+                    <td>
+                      <span className={`status-badge ${getStatusColor(order.status)}`}>
+                        {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
+                      </span>
+                    </td>
+                    <td>
+                      {order.isTestOrder ? (
+                        <span className="status-badge cancelled">
+                          <ApperIcon name="Flask" size={12} className="inline mr-1" />
+                          Test/Fake
+                        </span>
+                      ) : (
+                        <span className="status-badge delivered">
+                          <ApperIcon name="User" size={12} className="inline mr-1" />
+                          Real
+                        </span>
+                      )}
+                    </td>
+                    <td>{order.date}</td>
+                    <td>
+                      <div className="flex gap-2">
+                        <button 
+                          onClick={() => handleViewOrder(order)}
+                          className="admin-btn admin-btn-secondary"
+                          title="View Order Details"
+                        >
+                          <ApperIcon name="Eye" size={16} />
+                        </button>
+                        <button 
+                          onClick={() => handleUpdateStatus(order)}
+                          className="admin-btn admin-btn-primary"
+                          title="Update Order Status"
+                        >
+                          <ApperIcon name="Edit" size={16} />
+                        </button>
+                        {order.isTestOrder && (
+                          <button 
+                            onClick={() => handleRemoveOrder(order)}
+                            className="admin-btn admin-btn-danger"
+                            title="Remove Test/Fake Order"
+                          >
+                            <ApperIcon name="Trash2" size={16} />
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {showOrderModal && <OrderModal />}
+      </div>
+    );
+  };
+
+  const AdminDiscounts = () => {
+    const [discountForm, setDiscountForm] = useState({
+      type: 'percentage',
+      value: '',
+      target: 'sitewide',
+      productId: '',
+      categoryId: '',
+      startDate: '',
+      endDate: '',
+      description: ''
+    });
+
+    const handleApplyDiscount = (e) => {
+      e.preventDefault();
+      toast.success('Discount applied successfully!');
+      setDiscountForm({
+        type: 'percentage',
+        value: '',
+        target: 'sitewide',
+        productId: '',
+        categoryId: '',
+        startDate: '',
+        endDate: '',
+        description: ''
+      });
+    };
+
+    const handleRemoveDiscount = (discountName) => {
+      if (confirm(`Remove ${discountName}?`)) {
+        toast.success('Discount removed successfully!');
+      }
+    };
+
+    return (
+      <div className="space-y-6">
+        <div className="flex justify-between items-center">
+          <h3 className="text-xl font-bold">Discount Management</h3>
+        </div>
+        
+        <div className="admin-card">
+          <h4 className="font-semibold mb-4">Create New Discount</h4>
+          <form onSubmit={handleApplyDiscount} className="admin-form">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label>Discount Type</label>
+                <select
+                  value={discountForm.type}
+                  onChange={(e) => setDiscountForm({...discountForm, type: e.target.value})}
+                  required
+                >
+                  <option value="percentage">Percentage (%)</option>
+                  <option value="fixed">Fixed Amount (Rs.)</option>
+                </select>
+              </div>
+              
+              <div>
+                <label>Discount Value</label>
+                <input
+                  type="number"
+                  min="1"
+                  value={discountForm.value}
+                  onChange={(e) => setDiscountForm({...discountForm, value: e.target.value})}
+                  placeholder={discountForm.type === 'percentage' ? '20' : '500'}
+                  required
+                />
+              </div>
+
+              <div>
+                <label>Apply To</label>
+                <select
+                  value={discountForm.target}
+                  onChange={(e) => setDiscountForm({...discountForm, target: e.target.value})}
+                  required
+                >
+                  <option value="sitewide">Site-wide (All Products)</option>
+                  <option value="category">Specific Category</option>
+                  <option value="product">Specific Product</option>
+                </select>
+              </div>
+
+              {discountForm.target === 'category' && (
+                <div>
+                  <label>Select Category</label>
+                  <select
+                    value={discountForm.categoryId}
+                    onChange={(e) => setDiscountForm({...discountForm, categoryId: e.target.value})}
+                    required
+                  >
+                    <option value="">Choose Category</option>
+                    {mockCategories.map(cat => (
+                      <option key={cat.Id} value={cat.Id}>{cat.name.en}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              {discountForm.target === 'product' && (
+                <div>
+                  <label>Select Product</label>
+                  <select
+                    value={discountForm.productId}
+                    onChange={(e) => setDiscountForm({...discountForm, productId: e.target.value})}
+                    required
+                  >
+                    <option value="">Choose Product</option>
+                    {mockProducts.map(product => (
+                      <option key={product.Id} value={product.Id}>{product.name.en}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+              
+              <div>
+                <label>Start Date</label>
+                <input
+                  type="date"
+                  value={discountForm.startDate}
+                  onChange={(e) => setDiscountForm({...discountForm, startDate: e.target.value})}
+                  required
+                />
+              </div>
+              
+              <div>
+                <label>End Date</label>
+                <input
+                  type="date"
+                  value={discountForm.endDate}
+                  onChange={(e) => setDiscountForm({...discountForm, endDate: e.target.value})}
+                  required
+                />
+              </div>
+            </div>
+
+            <div>
+              <label>Description</label>
+              <input
+                type="text"
+                value={discountForm.description}
+                onChange={(e) => setDiscountForm({...discountForm, description: e.target.value})}
+                placeholder="e.g., Summer Sale, Electronics Deal"
+                required
+              />
+            </div>
+            
+            <button type="submit" className="admin-btn admin-btn-primary">
+              <ApperIcon name="Percent" size={16} className="mr-2" />
+              Apply Discount
+            </button>
+          </form>
+        </div>
+        
+        <div className="admin-card">
+          <h4 className="font-semibold mb-4">Active Discounts</h4>
+          <div className="space-y-3">
+            <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+              <div>
+                <div className="font-semibold">Site-wide Sale</div>
+                <div className="text-sm text-gray-600">20% off all items</div>
+                <div className="text-xs text-gray-500">Valid: 2024-01-01 to 2024-01-31</div>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="status-badge processing">Active</span>
+                <button 
+                  onClick={() => handleRemoveDiscount('Site-wide Sale')}
+                  className="admin-btn admin-btn-danger"
+                >
+                  <ApperIcon name="Trash2" size={16} />
+                </button>
+              </div>
+            </div>
+            
+            <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+              <div>
+                <div className="font-semibold">Electronics Sale</div>
+                <div className="text-sm text-gray-600">30% off electronics category</div>
+                <div className="text-xs text-gray-500">Valid: 2024-01-15 to 2024-02-15</div>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="status-badge processing">Active</span>
+                <button 
+                  onClick={() => handleRemoveDiscount('Electronics Sale')}
+                  className="admin-btn admin-btn-danger"
+                >
+                  <ApperIcon name="Trash2" size={16} />
+                </button>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+              <div>
+                <div className="font-semibold">Gaming Laptop Deal</div>
+                <div className="text-sm text-gray-600">Rs. 10,000 off specific product</div>
+                <div className="text-xs text-gray-500">Valid: 2024-01-10 to 2024-01-25</div>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="status-badge processing">Active</span>
+                <button 
+                  onClick={() => handleRemoveDiscount('Gaming Laptop Deal')}
+                  className="admin-btn admin-btn-danger"
+                >
+                  <ApperIcon name="Trash2" size={16} />
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const AdminSupport = () => {
+    const handleRespond = (message) => {
+      setEditingItem(message);
+      setShowSupportModal(true);
+    };
+
+    const handleMarkResolved = (messageId) => {
+      toast.success('Message marked as resolved!');
+    };
+
+    const getPriorityColor = (priority) => {
+      switch (priority) {
+        case 'high': return 'cancelled';
+        case 'medium': return 'processing';
+        case 'low': return 'shipped';
+        default: return 'processing';
+      }
+    };
+
+    const getStatusColor = (status) => {
+      switch (status) {
+        case 'pending': return 'pending';
+        case 'responded': return 'processing';
+        case 'resolved': return 'delivered';
+        default: return 'pending';
+      }
+    };
+
+    return (
+      <div className="space-y-6">
+        <div className="flex justify-between items-center">
+          <h3 className="text-xl font-bold">Support Messages</h3>
+          <div className="flex gap-2">
+            <span className="status-badge cancelled">
+              {supportMessages.filter(m => m.status === 'pending').length} Pending
+            </span>
+            <span className="status-badge processing">
+              {supportMessages.filter(m => m.status === 'responded').length} Responded
+            </span>
+            <span className="status-badge delivered">
+              {supportMessages.filter(m => m.status === 'resolved').length} Resolved
+            </span>
+          </div>
+        </div>
+        
+        <div className="admin-card">
+          <div className="overflow-x-auto">
+            <table className="admin-table">
+              <thead>
+                <tr>
+                  <th>Customer</th>
+                  <th>Subject</th>
+                  <th>Message</th>
+                  <th>Priority</th>
+                  <th>Status</th>
+                  <th>Date</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {supportMessages.map(message => (
+                  <tr key={message.Id}>
+                    <td>
+                      <div>
+                        <div className="font-medium">{message.customerName}</div>
+                        <div className="text-sm text-gray-600">{message.email}</div>
+                      </div>
+                    </td>
+                    <td className="font-medium">{message.subject}</td>
+                    <td className="max-w-xs">
+                      <div className="truncate text-sm text-gray-600" title={message.message}>
+                        {message.message}
+                      </div>
+                    </td>
+                    <td>
+                      <span className={`status-badge ${getPriorityColor(message.priority)}`}>
+                        {message.priority}
+                      </span>
+                    </td>
+                    <td>
+                      <span className={`status-badge ${getStatusColor(message.status)}`}>
+                        {message.status}
+                      </span>
+                    </td>
+                    <td>{message.date}</td>
+                    <td>
+                      <div className="flex gap-2">
+                        <button 
+                          onClick={() => handleRespond(message)}
+                          className="admin-btn admin-btn-primary"
+                          title="Respond to Message"
+                        >
+                          <ApperIcon name="MessageSquare" size={16} />
+                        </button>
+                        {message.status !== 'resolved' && (
+                          <button 
+                            onClick={() => handleMarkResolved(message.Id)}
+                            className="admin-btn admin-btn-secondary"
+                            title="Mark as Resolved"
+                          >
+                            <ApperIcon name="Check" size={16} />
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {showSupportModal && <SupportModal />}
+      </div>
+    );
+  };
+
+  const renderTabContent = () => {
+    switch (activeTab) {
+      case 'dashboard': return <AdminDashboard />;
+      case 'products': return <AdminProducts />;
+      case 'categories': return <AdminCategories />;
+      case 'orders': return <AdminOrders />;
+      case 'discounts': return <AdminDiscounts />;
+      case 'support': return <AdminSupport />;
+      default: return <AdminDashboard />;
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-background">
+      <div className="admin-header">
+        <h1 className="text-2xl font-bold">
+          {language === 'en' ? 'Admin Panel' : 'ایڈمن پینل'}
+        </h1>
+        <div className="flex items-center gap-3">
+          <span className="text-sm text-gray-600">
+            {language === 'en' ? 'Welcome,' : 'خوش آمدید،'} {user.name}
+          </span>
+          <img
+            src={user.avatar}
+            alt={user.name}
+            className="w-8 h-8 rounded-full object-cover"
+          />
+        </div>
+      </div>
+      
+      <div className="admin-content">
+        <div className="flex gap-2 mb-6 overflow-x-auto">
+          {tabs.map(tab => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg whitespace-nowrap transition-colors ${
+                activeTab === tab.id
+                  ? 'bg-primary text-white'
+                  : 'bg-white text-gray-600 hover:bg-gray-100'
+              }`}
+            >
+              <ApperIcon name={tab.icon} size={16} />
+              {tab.label}
+            </button>
+          ))}
+        </div>
+        
+        {renderTabContent()}
+      </div>
+    </div>
+  );
+};
+
+function App() {
+  return (
+    <ErrorBoundary>
+      <AppProvider>
+        <ThemeProvider>
+          <BrowserRouter>
+            <Layout>
+              <Routes>
+                <Route path="/" element={<Home />} />
+                <Route path="/categories" element={<Categories />} />
+                <Route path="/category/:slug" element={<CategoryPage />} />
+                <Route path="/product/:id" element={<ProductDetail />} />
+                <Route path="/search" element={<SearchPage />} />
+                <Route path="/cart" element={<Cart />} />
+                <Route path="/checkout" element={<Checkout />} />
+                <Route path="/orders" element={<Orders />} />
+                <Route path="/profile" element={<Profile />} />
+                <Route path="/wishlist" element={<Wishlist />} />
+                <Route path="/admin" element={<Admin />} />
+              </Routes>
+            </Layout>
+            <ToastContainer
+              position="top-right"
+              autoClose={3000}
+              hideProgressBar={false}
+              newestOnTop={false}
+              closeOnClick
+              rtl={false}
+              pauseOnFocusLoss
+              draggable
+              pauseOnHover
+              theme="colored"
+              className="toast-container"
+            />
+          </BrowserRouter>
+        </ThemeProvider>
+      </AppProvider>
+    </ErrorBoundary>
+  );
+}
+
+export default App;
       ) : (
         <div className="space-y-6">
 <div className="admin-card">
