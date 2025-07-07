@@ -436,9 +436,18 @@ const SearchBar = () => {
   };
 
 const handleCameraSearch = async () => {
+    // Prevent multiple simultaneous camera access attempts
+    if (isSearching) {
+      toast.warning(language === 'en' 
+        ? 'Camera access in progress...' 
+        : 'کیمرہ کی رسائی جاری ہے...'
+      );
+      return;
+    }
+
     try {
-      // Check if device supports camera
-      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      // Comprehensive device capability detection
+      if (!navigator.mediaDevices) {
         toast.error(language === 'en' 
           ? 'Camera not supported on this device' 
           : 'اس ڈیوائس پر کیمرہ سپورٹ نہیں ہے'
@@ -446,19 +455,68 @@ const handleCameraSearch = async () => {
         return;
       }
 
-      // Request camera permission and access
+      if (!navigator.mediaDevices.getUserMedia) {
+        toast.error(language === 'en' 
+          ? 'Camera API not supported in this browser' 
+          : 'اس براؤزر میں کیمرہ API سپورٹ نہیں ہے'
+        );
+        return;
+      }
+
+      // Check if any video input devices are available
+      try {
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const videoDevices = devices.filter(device => device.kind === 'videoinput');
+        
+        if (videoDevices.length === 0) {
+          toast.error(language === 'en' 
+            ? 'No camera devices found on this device' 
+            : 'اس ڈیوائس پر کوئی کیمرہ ڈیوائس نہیں ملا'
+          );
+          return;
+        }
+      } catch (deviceError) {
+        console.warn('Could not enumerate devices:', deviceError);
+        // Continue with camera access attempt as some browsers restrict device enumeration
+      }
+
+      // Set searching state to prevent multiple attempts
+      setIsSearching(true);
+
+      // Show loading toast
       toast.info(language === 'en' 
-        ? 'Opening camera...' 
-        : 'کیمرہ کھولا جا رہا ہے...'
+        ? 'Accessing camera...' 
+        : 'کیمرہ کی رسائی...'
       );
 
-      const stream = await navigator.mediaDevices.getUserMedia({ 
-        video: { 
-          facingMode: 'environment', // Use back camera for product scanning
-          width: { ideal: 1280 },
-          height: { ideal: 720 }
-        } 
-      });
+      // Get camera stream with progressive fallback constraints
+      let stream;
+      try {
+        // Try high quality first
+        stream = await navigator.mediaDevices.getUserMedia({ 
+          video: { 
+            width: { ideal: 1280 },
+            height: { ideal: 720 },
+            facingMode: 'environment' // Prefer back camera on mobile
+          } 
+        });
+      } catch (highQualityError) {
+        try {
+          // Fallback to standard quality
+          stream = await navigator.mediaDevices.getUserMedia({ 
+            video: { 
+              width: { ideal: 640 },
+              height: { ideal: 480 }
+            } 
+          });
+        } catch (standardQualityError) {
+          // Final fallback - any available camera
+          stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        }
+      }
+
+      // Reset searching state
+      setIsSearching(false);
 
       // Create video element for camera preview
       const video = document.createElement('video');
@@ -550,62 +608,87 @@ const handleCameraSearch = async () => {
 
       // Handle capture
       const handleCapture = async () => {
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
-        ctx.drawImage(video, 0, 0);
+        try {
+          canvas.width = video.videoWidth;
+          canvas.height = video.videoHeight;
+          ctx.drawImage(video, 0, 0);
 
-        // Stop camera stream
-        stream.getTracks().forEach(track => track.stop());
-        document.body.removeChild(video);
-        document.body.removeChild(overlay);
+          // Stop camera stream
+          stream.getTracks().forEach(track => track.stop());
+          document.body.removeChild(video);
+          document.body.removeChild(overlay);
 
-        // Show processing toast
-        toast.info(language === 'en' 
-          ? 'Analyzing image...' 
-          : 'تصویر کا تجزیہ کیا جا رہا ہے...'
-        );
-
-        // Simulate AI processing delay
-        await new Promise(resolve => setTimeout(resolve, 2000));
-
-        // Mock AI product detection - randomly select a clothing/accessory category
-        const productCategories = ['mens-shoes', 'womens-fashion', 'beauty'];
-        const detectedCategory = productCategories[Math.floor(Math.random() * productCategories.length)];
-        
-        // Find products in detected category
-        const detectedProducts = mockProducts.filter(product => 
-          product.category === detectedCategory
-        );
-
-        if (detectedProducts.length > 0) {
-          const categoryName = mockCategories.find(cat => cat.slug === detectedCategory);
-          const searchQuery = categoryName ? categoryName.name[language] : 'related items';
-          
-          toast.success(language === 'en' 
-            ? `Found ${detectedProducts.length} similar products!` 
-            : `${detectedProducts.length} ملتے جلتے پروڈکٹس ملے!`
+          // Show processing toast
+          toast.info(language === 'en' 
+            ? 'Analyzing image...' 
+            : 'تصویر کا تجزیہ کیا جا رہا ہے...'
           );
 
-          // Navigate to search results with detected products
-          navigate(`/search?q=${encodeURIComponent(searchQuery)}&camera=true&category=${detectedCategory}`);
-        } else {
-          toast.warning(language === 'en' 
-            ? 'No similar products found. Try a different angle.' 
-            : 'کوئی ملتا جلتا پروڈکٹ نہیں ملا۔ مختلف زاویے سے کوشش کریں۔'
+          // Simulate AI processing delay
+          await new Promise(resolve => setTimeout(resolve, 2000));
+
+          // Mock AI product detection - randomly select a clothing/accessory category
+          const productCategories = ['mens-shoes', 'womens-fashion', 'beauty'];
+          const detectedCategory = productCategories[Math.floor(Math.random() * productCategories.length)];
+          
+          // Find products in detected category
+          const detectedProducts = mockProducts.filter(product => 
+            product.category === detectedCategory
+          );
+
+          if (detectedProducts.length > 0) {
+            const categoryName = mockCategories.find(cat => cat.slug === detectedCategory);
+            const searchQuery = categoryName ? categoryName.name[language] : 'related items';
+            
+            toast.success(language === 'en' 
+              ? `Found ${detectedProducts.length} similar products!` 
+              : `${detectedProducts.length} ملتے جلتے پروڈکٹس ملے!`
+            );
+
+            // Navigate to search results with detected products
+            navigate(`/search?q=${encodeURIComponent(searchQuery)}&camera=true&category=${detectedCategory}`);
+          } else {
+            toast.warning(language === 'en' 
+              ? 'No similar products found. Try a different angle.' 
+              : 'کوئی ملتا جلتا پروڈکٹ نہیں ملا۔ مختلف زاویے سے کوشش کریں۔'
+            );
+          }
+        } catch (captureError) {
+          console.error('Image capture error:', captureError);
+          toast.error(language === 'en' 
+            ? 'Failed to capture image. Please try again.' 
+            : 'تصویر کیپچر کرنے میں ناکامی۔ دوبارہ کوشش کریں۔'
           );
         }
       };
 
       // Handle close
       const handleClose = () => {
-        stream.getTracks().forEach(track => track.stop());
-        document.body.removeChild(video);
-        document.body.removeChild(overlay);
+        try {
+          stream.getTracks().forEach(track => track.stop());
+          if (document.body.contains(video)) {
+            document.body.removeChild(video);
+          }
+          if (document.body.contains(overlay)) {
+            document.body.removeChild(overlay);
+          }
+        } catch (closeError) {
+          console.error('Error closing camera:', closeError);
+        }
       };
 
       // Add event listeners
       captureBtn.addEventListener('click', handleCapture);
       closeBtn.addEventListener('click', handleClose);
+
+      // Handle ESC key to close camera
+      const handleKeyPress = (e) => {
+        if (e.key === 'Escape') {
+          handleClose();
+          document.removeEventListener('keydown', handleKeyPress);
+        }
+      };
+      document.addEventListener('keydown', handleKeyPress);
 
       // Assemble UI
       overlay.appendChild(instructions);
@@ -616,23 +699,46 @@ const handleCameraSearch = async () => {
       document.body.appendChild(video);
       document.body.appendChild(overlay);
 
+      // Success toast
+      toast.success(language === 'en' 
+        ? 'Camera ready! Point at your product and capture.' 
+        : 'کیمرہ تیار! اپنے پروڈکٹ پر پوائنٹ کریں اور کیپچر کریں۔'
+      );
+
     } catch (error) {
       console.error('Camera access error:', error);
+      setIsSearching(false);
       
+      // Enhanced error handling with specific error types
       if (error.name === 'NotAllowedError') {
         toast.error(language === 'en' 
-          ? 'Camera permission denied. Please allow camera access.' 
-          : 'کیمرہ کی اجازت مسترد۔ برائے کرم کیمرہ تک رسائی کی اجازت دیں۔'
+          ? 'Camera permission denied. Please allow camera access in your browser settings.' 
+          : 'کیمرہ کی اجازت مسترد۔ برائے کرم اپنے براؤزر کی سیٹنگز میں کیمرہ تک رسائی کی اجازت دیں۔'
         );
       } else if (error.name === 'NotFoundError') {
         toast.error(language === 'en' 
-          ? 'No camera found on this device' 
-          : 'اس ڈیوائس پر کوئی کیمرہ نہیں ملا'
+          ? 'No camera found on this device. Please connect a camera and try again.' 
+          : 'اس ڈیوائس پر کوئی کیمرہ نہیں ملا۔ برائے کرم کیمرہ کنکٹ کریں اور دوبارہ کوشش کریں۔'
+        );
+      } else if (error.name === 'NotReadableError') {
+        toast.error(language === 'en' 
+          ? 'Camera is already in use by another application.' 
+          : 'کیمرہ پہلے سے کسی اور ایپلیکیشن میں استعمال ہو رہا ہے۔'
+        );
+      } else if (error.name === 'OverconstrainedError') {
+        toast.error(language === 'en' 
+          ? 'Camera constraints not supported. Please try again.' 
+          : 'کیمرہ کی پابندیاں سپورٹ نہیں۔ دوبارہ کوشش کریں۔'
+        );
+      } else if (error.name === 'SecurityError') {
+        toast.error(language === 'en' 
+          ? 'Camera access blocked for security reasons. Please use HTTPS.' 
+          : 'سیکیورٹی وجوہات کے لیے کیمرہ کی رسائی مسدود۔ براؤزر میں HTTPS استعمال کریں۔'
         );
       } else {
         toast.error(language === 'en' 
-          ? 'Failed to access camera. Please try again.' 
-          : 'کیمرہ تک رسائی میں ناکامی۔ دوبارہ کوشش کریں۔'
+          ? 'Failed to access camera. Please check your device and try again.' 
+          : 'کیمرہ تک رسائی میں ناکامی۔ اپنے ڈیوائس کو چیک کریں اور دوبارہ کوشش کریں۔'
         );
       }
     }
