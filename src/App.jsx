@@ -435,8 +435,207 @@ const SearchBar = () => {
     }
   };
 
-  const handleCameraSearch = () => {
-    toast.info(language === 'en' ? 'Camera search feature coming soon!' : 'کیمرہ سرچ فیچر جلد آ رہا ہے!');
+const handleCameraSearch = async () => {
+    try {
+      // Check if device supports camera
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        toast.error(language === 'en' 
+          ? 'Camera not supported on this device' 
+          : 'اس ڈیوائس پر کیمرہ سپورٹ نہیں ہے'
+        );
+        return;
+      }
+
+      // Request camera permission and access
+      toast.info(language === 'en' 
+        ? 'Opening camera...' 
+        : 'کیمرہ کھولا جا رہا ہے...'
+      );
+
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        video: { 
+          facingMode: 'environment', // Use back camera for product scanning
+          width: { ideal: 1280 },
+          height: { ideal: 720 }
+        } 
+      });
+
+      // Create video element for camera preview
+      const video = document.createElement('video');
+      video.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        object-fit: cover;
+        z-index: 9999;
+        background: black;
+      `;
+      video.autoplay = true;
+      video.playsInline = true;
+      video.srcObject = stream;
+
+      // Create overlay with capture button and instructions
+      const overlay = document.createElement('div');
+      overlay.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        z-index: 10000;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        align-items: center;
+        padding: 2rem;
+        background: rgba(0,0,0,0.1);
+      `;
+
+      // Instructions text
+      const instructions = document.createElement('div');
+      instructions.style.cssText = `
+        background: rgba(0,0,0,0.7);
+        color: white;
+        padding: 1rem 2rem;
+        border-radius: 1rem;
+        text-align: center;
+        font-size: 1rem;
+        margin-top: 2rem;
+      `;
+      instructions.textContent = language === 'en' 
+        ? 'Point camera at shoes, bag, or shirt and tap capture'
+        : 'کیمرے کو جوتے، بیگ، یا شرٹ پر ڈائریکٹ کریں اور کیپچر پر ٹیپ کریں';
+
+      // Capture button
+      const captureBtn = document.createElement('button');
+      captureBtn.style.cssText = `
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        background: #FF6B35;
+        border: 4px solid white;
+        cursor: pointer;
+        margin-bottom: 2rem;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        transition: transform 0.2s;
+      `;
+      captureBtn.onmousedown = () => captureBtn.style.transform = 'scale(0.9)';
+      captureBtn.onmouseup = () => captureBtn.style.transform = 'scale(1)';
+
+      // Close button
+      const closeBtn = document.createElement('button');
+      closeBtn.style.cssText = `
+        position: absolute;
+        top: 2rem;
+        right: 2rem;
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: rgba(0,0,0,0.7);
+        color: white;
+        border: none;
+        cursor: pointer;
+        font-size: 1.5rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      `;
+      closeBtn.textContent = '×';
+
+      // Canvas for image capture
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+
+      // Handle capture
+      const handleCapture = async () => {
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        ctx.drawImage(video, 0, 0);
+
+        // Stop camera stream
+        stream.getTracks().forEach(track => track.stop());
+        document.body.removeChild(video);
+        document.body.removeChild(overlay);
+
+        // Show processing toast
+        toast.info(language === 'en' 
+          ? 'Analyzing image...' 
+          : 'تصویر کا تجزیہ کیا جا رہا ہے...'
+        );
+
+        // Simulate AI processing delay
+        await new Promise(resolve => setTimeout(resolve, 2000));
+
+        // Mock AI product detection - randomly select a clothing/accessory category
+        const productCategories = ['mens-shoes', 'womens-fashion', 'beauty'];
+        const detectedCategory = productCategories[Math.floor(Math.random() * productCategories.length)];
+        
+        // Find products in detected category
+        const detectedProducts = mockProducts.filter(product => 
+          product.category === detectedCategory
+        );
+
+        if (detectedProducts.length > 0) {
+          const categoryName = mockCategories.find(cat => cat.slug === detectedCategory);
+          const searchQuery = categoryName ? categoryName.name[language] : 'related items';
+          
+          toast.success(language === 'en' 
+            ? `Found ${detectedProducts.length} similar products!` 
+            : `${detectedProducts.length} ملتے جلتے پروڈکٹس ملے!`
+          );
+
+          // Navigate to search results with detected products
+          navigate(`/search?q=${encodeURIComponent(searchQuery)}&camera=true&category=${detectedCategory}`);
+        } else {
+          toast.warning(language === 'en' 
+            ? 'No similar products found. Try a different angle.' 
+            : 'کوئی ملتا جلتا پروڈکٹ نہیں ملا۔ مختلف زاویے سے کوشش کریں۔'
+          );
+        }
+      };
+
+      // Handle close
+      const handleClose = () => {
+        stream.getTracks().forEach(track => track.stop());
+        document.body.removeChild(video);
+        document.body.removeChild(overlay);
+      };
+
+      // Add event listeners
+      captureBtn.addEventListener('click', handleCapture);
+      closeBtn.addEventListener('click', handleClose);
+
+      // Assemble UI
+      overlay.appendChild(instructions);
+      overlay.appendChild(captureBtn);
+      overlay.appendChild(closeBtn);
+
+      // Add to DOM
+      document.body.appendChild(video);
+      document.body.appendChild(overlay);
+
+    } catch (error) {
+      console.error('Camera access error:', error);
+      
+      if (error.name === 'NotAllowedError') {
+        toast.error(language === 'en' 
+          ? 'Camera permission denied. Please allow camera access.' 
+          : 'کیمرہ کی اجازت مسترد۔ برائے کرم کیمرہ تک رسائی کی اجازت دیں۔'
+        );
+      } else if (error.name === 'NotFoundError') {
+        toast.error(language === 'en' 
+          ? 'No camera found on this device' 
+          : 'اس ڈیوائس پر کوئی کیمرہ نہیں ملا'
+        );
+      } else {
+        toast.error(language === 'en' 
+          ? 'Failed to access camera. Please try again.' 
+          : 'کیمرہ تک رسائی میں ناکامی۔ دوبارہ کوشش کریں۔'
+        );
+      }
+    }
   };
 
   return (
