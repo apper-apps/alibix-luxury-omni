@@ -1778,7 +1778,7 @@ const Profile = () => {
               {language === 'en' ? 'Customer Login' : 'کسٹمر لاگ ان'}
             </button>
             
-            <div className="text-xs text-center text-gray-500 dark:text-gray-400 mt-4 p-3 bg-amber-50 dark:bg-amber-900/20 rounded-lg border border-amber-200 dark:border-amber-800">
+<div className="text-xs text-center text-gray-500 dark:text-gray-400 mt-4 p-3 bg-amber-50 dark:bg-amber-900/20 rounded-lg border border-amber-200 dark:border-amber-800">
               <ApperIcon name="Info" size={16} className="inline mr-1" />
               {language === 'en' 
                 ? 'Admin access only for alibix07@gmail.com'
@@ -1786,9 +1786,9 @@ const Profile = () => {
               }
             </div>
           </div>
+        </div>
       ) : (
         <div className="space-y-6">
-          {/* User Info */}
           <div className="admin-card">
             <div className="flex items-center gap-4 mb-4">
               <img
