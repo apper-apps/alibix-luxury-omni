@@ -3591,9 +3591,9 @@ const tabs = [
       setShowOrderModal(true);
     };
 
-    const handleRemoveOrder = (order) => {
-      if (confirm(`Are you sure you want to remove order ${order.orderNumber}? This action cannot be undone.`)) {
-        toast.success(`Order ${order.orderNumber} removed successfully!`);
+const handleRemoveOrder = (order) => {
+      if (confirm(`Are you sure you want to remove test order ${order.orderNumber}? This action cannot be undone.`)) {
+        toast.success(`Test order ${order.orderNumber} removed successfully!`);
       }
     };
 
