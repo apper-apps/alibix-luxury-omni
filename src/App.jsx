@@ -2,8 +2,9 @@ import 'react-toastify/dist/ReactToastify.css'
 import React, { useContext, useEffect, useState } from "react";
 import { BrowserRouter, Link, Route, Routes, useLocation, useNavigate } from "react-router-dom";
 import { ToastContainer, toast } from "react-toastify";
+import { AuthProvider, useAuth } from "@/contexts/AuthContext";
+import ProtectedRoute from "@/components/ProtectedRoute";
 import ApperIcon from "@/components/ApperIcon";
-
 // Error Boundary Component
 class ErrorBoundary extends React.Component {
   constructor(props) {
@@ -2290,76 +2291,97 @@ const Orders = () => {
 };
 
 const Profile = () => {
-  const { language, user, setUser, isAdmin, setIsAdmin, wishlist, recentlyViewed } = useApp();
+  const { language, wishlist, recentlyViewed } = useApp();
+  const { user, isAdmin, signInWithGoogle, signInWithEmailPassword, signUpWithEmailPassword, signOut, loading } = useAuth();
   const navigate = useNavigate();
+  const [authMode, setAuthMode] = useState('signin'); // 'signin' or 'signup'
+  const [customerFormData, setCustomerFormData] = useState({
+    email: '',
+    password: '',
+    name: '',
+    confirmPassword: ''
+  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Load user data from localStorage on component mount
-  useEffect(() => {
-    const savedUser = localStorage.getItem('alibix-user');
-    const savedIsAdmin = localStorage.getItem('alibix-is-admin');
-    
-    if (savedUser) {
-      try {
-        const userData = JSON.parse(savedUser);
-        setUser(userData);
-        setIsAdmin(savedIsAdmin === 'true');
-      } catch (error) {
-        console.error('Error loading user from localStorage:', error);
-        localStorage.removeItem('alibix-user');
-        localStorage.removeItem('alibix-is-admin');
+  const handleGoogleLogin = async () => {
+    try {
+      await signInWithGoogle();
+    } catch (error) {
+      // Error handling is done in the AuthContext
+      console.error('Google login error:', error);
+    }
+  };
+
+  const handleCustomerSubmit = async (e) => {
+    e.preventDefault();
+    if (isSubmitting) return;
+
+    setIsSubmitting(true);
+    try {
+      if (authMode === 'signup') {
+        // Validate password confirmation
+        if (customerFormData.password !== customerFormData.confirmPassword) {
+          toast.error(language === 'en' ? 'Passwords do not match!' : 'پاس ورڈ مماثل نہیں ہیں!');
+          return;
+        }
+
+        await signUpWithEmailPassword(
+          customerFormData.email,
+          customerFormData.password,
+          customerFormData.name
+        );
+      } else {
+        await signInWithEmailPassword(
+          customerFormData.email,
+          customerFormData.password
+        );
       }
-    }
-  }, [setUser, setIsAdmin]);
 
-  const handleGoogleLogin = () => {
-    const mockUser = {
-      name: 'Admin User',
-      email: 'alibix07@gmail.com',
-      avatar: '/api/placeholder/100/100'
-    };
-    
-    setUser(mockUser);
-    
-    const isAdminUser = mockUser.email === 'alibix07@gmail.com';
-    setIsAdmin(isAdminUser);
-    
-    localStorage.setItem('alibix-user', JSON.stringify(mockUser));
-    localStorage.setItem('alibix-is-admin', isAdminUser.toString());
-    
-    if (isAdminUser) {
-      toast.success(language === 'en' ? 'Admin login successful!' : 'ایڈمن لاگ ان کامیاب!');
-    } else {
-      toast.success(language === 'en' ? 'Logged in successfully!' : 'کامیابی سے لاگ ان ہوگئے!');
+      // Clear form
+      setCustomerFormData({
+        email: '',
+        password: '',
+        name: '',
+        confirmPassword: ''
+      });
+    } catch (error) {
+      // Error handling is done in the AuthContext
+      console.error('Customer auth error:', error);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
-  const handleCustomerLogin = () => {
-    const mockCustomer = {
-      name: 'Customer User',
-      email: 'customer@example.com',
-      avatar: '/api/placeholder/100/100'
-    };
-    
-    setUser(mockCustomer);
-    setIsAdmin(false);
-    
-    localStorage.setItem('alibix-user', JSON.stringify(mockCustomer));
-    localStorage.setItem('alibix-is-admin', 'false');
-    
-    toast.success(language === 'en' ? 'Customer login successful!' : 'کسٹمر لاگ ان کامیاب!');
+  const handleLogout = async () => {
+    try {
+      await signOut();
+    } catch (error) {
+      // Error handling is done in the AuthContext
+      console.error('Logout error:', error);
+    }
   };
 
-  const handleLogout = () => {
-    setUser(null);
-    setIsAdmin(false);
-    
-    localStorage.removeItem('alibix-user');
-    localStorage.removeItem('alibix-is-admin');
-    
-    toast.success(language === 'en' ? 'Logged out successfully!' : 'کامیابی سے لاگ آؤٹ ہوگئے!');
+  const handleFormChange = (e) => {
+    setCustomerFormData({
+      ...customerFormData,
+      [e.target.name]: e.target.value
+    });
   };
 
-  return (
+  if (loading) {
+    return (
+      <div className="p-4 text-center py-12">
+        <div className="animate-spin mb-4">
+          <ApperIcon name="Loader2" size={48} className="text-primary mx-auto" />
+        </div>
+        <p className="text-gray-600">
+          {language === 'en' ? 'Loading...' : 'لوڈ ہو رہا ہے...'}
+        </p>
+      </div>
+    );
+  }
+
+return (
     <div className="p-4">
       <h1 className="text-2xl font-bold mb-6">
         {language === 'en' ? 'Profile' : 'پروفائل'}
@@ -2375,22 +2397,161 @@ const Profile = () => {
             {language === 'en' ? 'Access your orders, wishlist, and more' : 'اپنے آرڈرز، خواہش کی فہرست اور مزید تک رسائی حاصل کریں'}
           </p>
           
-          <div className="space-y-4">
-            <button
-              onClick={handleGoogleLogin}
-              className="btn-primary flex items-center gap-2 mx-auto w-full justify-center"
-            >
-              <ApperIcon name="Mail" size={20} />
-              {language === 'en' ? 'Admin Login (Gmail)' : 'ایڈمن لاگ ان (Gmail)'}
-            </button>
-            
-            <button
-              onClick={handleCustomerLogin}
-              className="btn-secondary flex items-center gap-2 mx-auto w-full justify-center"
-            >
-              <ApperIcon name="User" size={20} />
-              {language === 'en' ? 'Customer Login' : 'کسٹمر لاگ ان'}
-            </button>
+          {/* Admin Login Section */}
+          <div className="space-y-6">
+            <div className="bg-gradient-to-r from-primary to-accent p-6 rounded-xl text-white">
+              <h3 className="font-bold mb-2">
+                {language === 'en' ? 'Admin Access' : 'ایڈمن رسائی'}
+              </h3>
+              <p className="text-sm mb-4 opacity-90">
+                {language === 'en' ? 'Only alibix07@gmail.com can access admin panel' : 'صرف alibix07@gmail.com ایڈمن پینل تک رسائی حاصل کر سکتا ہے'}
+              </p>
+              <button
+                onClick={handleGoogleLogin}
+                disabled={loading}
+                className="bg-white text-primary font-semibold py-3 px-6 rounded-lg flex items-center gap-2 mx-auto hover:bg-gray-100 transition-colors disabled:opacity-50"
+              >
+                {loading ? (
+                  <ApperIcon name="Loader2" size={20} className="animate-spin" />
+                ) : (
+                  <ApperIcon name="Mail" size={20} />
+                )}
+                {language === 'en' ? 'Continue with Google' : 'گوگل کے ساتھ جاری رکھیں'}
+              </button>
+            </div>
+
+            {/* Customer Login Section */}
+            <div className="bg-white dark:bg-gray-800 p-6 rounded-xl border border-gray-200 dark:border-gray-700">
+              <h3 className="font-bold mb-4 text-gray-900 dark:text-white">
+                {language === 'en' ? 'Customer Login' : 'کسٹمر لاگ ان'}
+              </h3>
+              
+              {/* Auth Mode Toggle */}
+              <div className="flex bg-gray-100 dark:bg-gray-700 rounded-lg p-1 mb-4">
+                <button
+                  onClick={() => setAuthMode('signin')}
+                  className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
+                    authMode === 'signin'
+                      ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm'
+                      : 'text-gray-600 dark:text-gray-300'
+                  }`}
+                >
+                  {language === 'en' ? 'Sign In' : 'سائن ان'}
+                </button>
+                <button
+                  onClick={() => setAuthMode('signup')}
+                  className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
+                    authMode === 'signup'
+                      ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm'
+                      : 'text-gray-600 dark:text-gray-300'
+                  }`}
+                >
+                  {language === 'en' ? 'Sign Up' : 'رجسٹر'}
+                </button>
+              </div>
+
+              {/* Customer Auth Form */}
+              <form onSubmit={handleCustomerSubmit} className="space-y-4">
+                {authMode === 'signup' && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      {language === 'en' ? 'Full Name' : 'مکمل نام'}
+                    </label>
+                    <input
+                      type="text"
+                      name="name"
+                      value={customerFormData.name}
+                      onChange={handleFormChange}
+                      className="input-field"
+                      placeholder={language === 'en' ? 'Enter your full name' : 'اپنا مکمل نام داخل کریں'}
+                      required
+                    />
+                  </div>
+                )}
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    {language === 'en' ? 'Email Address' : 'ای میل ایڈریس'}
+                  </label>
+                  <input
+                    type="email"
+                    name="email"
+                    value={customerFormData.email}
+                    onChange={handleFormChange}
+                    className="input-field"
+                    placeholder={language === 'en' ? 'Enter your email' : 'اپنا ای میل داخل کریں'}
+                    required
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    {language === 'en' ? 'Password' : 'پاس ورڈ'}
+                  </label>
+                  <input
+                    type="password"
+                    name="password"
+                    value={customerFormData.password}
+                    onChange={handleFormChange}
+                    className="input-field"
+                    placeholder={language === 'en' ? 'Enter your password' : 'اپنا پاس ورڈ داخل کریں'}
+                    required
+                    minLength="6"
+                  />
+                </div>
+
+                {authMode === 'signup' && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      {language === 'en' ? 'Confirm Password' : 'پاس ورڈ کی تصدیق'}
+                    </label>
+                    <input
+                      type="password"
+                      name="confirmPassword"
+                      value={customerFormData.confirmPassword}
+                      onChange={handleFormChange}
+                      className="input-field"
+                      placeholder={language === 'en' ? 'Confirm your password' : 'اپنے پاس ورڈ کی تصدیق کریں'}
+                      required
+                      minLength="6"
+                    />
+                  </div>
+                )}
+                
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="w-full btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isSubmitting ? (
+                    <div className="flex items-center justify-center gap-2">
+                      <ApperIcon name="Loader2" size={20} className="animate-spin" />
+                      {language === 'en' ? 'Please wait...' : 'براہ کرم انتظار کریں...'}
+                    </div>
+                  ) : (
+                    authMode === 'signin' 
+                      ? (language === 'en' ? 'Sign In' : 'سائن ان کریں')
+                      : (language === 'en' ? 'Create Account' : 'اکاؤنٹ بنائیں')
+                  )}
+                </button>
+              </form>
+
+              {/* Alternative Google Sign In for Customers */}
+              <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-600">
+                <button
+                  onClick={handleGoogleLogin}
+                  disabled={loading}
+                  className="w-full btn-secondary flex items-center justify-center gap-2 disabled:opacity-50"
+                >
+                  {loading ? (
+                    <ApperIcon name="Loader2" size={20} className="animate-spin" />
+                  ) : (
+                    <ApperIcon name="Mail" size={20} />
+                  )}
+                  {language === 'en' ? 'Continue with Google' : 'گوگل کے ساتھ جاری رکھیں'}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       ) : (
@@ -2618,31 +2779,14 @@ const SearchPage = () => {
     </div>
   );
 };
-
 const Admin = () => {
-  const { language, user, isAdmin } = useApp();
+  const { language } = useApp();
+  const { user, isAdmin } = useAuth();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('dashboard');
 
-  if (!user || !isAdmin) {
-    return (
-      <div className="p-4 text-center py-12">
-        <ApperIcon name="Lock" size={48} className="text-gray-400 mx-auto mb-4" />
-        <h2 className="text-2xl font-bold text-gray-600 mb-2">
-          {language === 'en' ? 'Access Denied' : 'رسائی مسترد'}
-        </h2>
-        <p className="text-gray-500 mb-6">
-          {language === 'en' ? 'You need admin privileges to access this page' : 'اس صفحے تک رسائی کے لیے آپ کو ایڈمن کی اجازت درکار ہے'}
-        </p>
-        <button
-          onClick={() => navigate('/profile')}
-          className="btn-primary"
-        >
-          {language === 'en' ? 'Go to Profile' : 'پروفائل پر جائیں'}
-        </button>
-      </div>
-    );
-  }
+// Admin access is now handled by ProtectedRoute component
+  // This component will only render if user is authenticated and has admin privileges
 
 const tabs = [
     { id: 'dashboard', label: language === 'en' ? 'Dashboard' : 'ڈیش بورڈ', icon: 'BarChart3' },
@@ -4314,40 +4458,49 @@ case 'discounts': return <AdminDiscounts />;
 function App() {
   return (
     <ErrorBoundary>
-      <AppProvider>
-        <ThemeProvider>
-          <BrowserRouter>
-            <Layout>
-              <Routes>
-                <Route path="/" element={<Home />} />
-                <Route path="/categories" element={<Categories />} />
-                <Route path="/category/:slug" element={<CategoryPage />} />
-                <Route path="/product/:id" element={<ProductDetail />} />
-                <Route path="/search" element={<SearchPage />} />
-                <Route path="/cart" element={<Cart />} />
-                <Route path="/checkout" element={<Checkout />} />
-                <Route path="/orders" element={<Orders />} />
-                <Route path="/profile" element={<Profile />} />
-                <Route path="/wishlist" element={<Wishlist />} />
-                <Route path="/admin" element={<Admin />} />
-              </Routes>
-            </Layout>
-            <ToastContainer
-              position="top-right"
-              autoClose={3000}
-              hideProgressBar={false}
-              newestOnTop={false}
-              closeOnClick
-              rtl={false}
-              pauseOnFocusLoss
-              draggable
-              pauseOnHover
-              theme="colored"
-              className="toast-container"
-            />
-          </BrowserRouter>
-</ThemeProvider>
-      </AppProvider>
+      <AuthProvider>
+        <AppProvider>
+          <ThemeProvider>
+            <BrowserRouter>
+              <Layout>
+                <Routes>
+                  <Route path="/" element={<Home />} />
+                  <Route path="/categories" element={<Categories />} />
+                  <Route path="/category/:slug" element={<CategoryPage />} />
+                  <Route path="/product/:id" element={<ProductDetail />} />
+                  <Route path="/search" element={<SearchPage />} />
+                  <Route path="/cart" element={<Cart />} />
+                  <Route path="/checkout" element={<Checkout />} />
+                  <Route path="/orders" element={<Orders />} />
+                  <Route path="/profile" element={<Profile />} />
+                  <Route path="/wishlist" element={<Wishlist />} />
+                  <Route 
+                    path="/admin/*" 
+                    element={
+                      <ProtectedRoute requireAdmin={true}>
+                        <Admin />
+                      </ProtectedRoute>
+                    } 
+                  />
+                </Routes>
+              </Layout>
+              <ToastContainer
+                position="top-right"
+                autoClose={3000}
+                hideProgressBar={false}
+                newestOnTop={false}
+                closeOnClick
+                rtl={false}
+                pauseOnFocusLoss
+                draggable
+                pauseOnHover
+                theme="colored"
+                className="toast-container"
+              />
+            </BrowserRouter>
+          </ThemeProvider>
+        </AppProvider>
+      </AuthProvider>
     </ErrorBoundary>
   );
 }
